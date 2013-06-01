@@ -5,6 +5,7 @@ goog.require('ol.View2D');
 goog.require('ol.layer.ImageLayer');
 goog.require('ol.projection');
 goog.require('ol.source.SingleImageWMS');
+goog.require('ol.source.TiledVideoWMS');
 goog.require('ol.source.TiledWMS');
 
 /*
@@ -69,6 +70,28 @@ var layers = [
       url: 'http://maps.scinfo.org.nz/basemaps/wms?',
       params: {
           'LAYERS': 'landscape_eco_painted_relief', 
+          'TILED': true,
+          'VERSION': '1.1.1'
+      },
+      extent: extent
+    })
+  }),
+  /*
+new OpenLayers.Layer.VideoWMS("Possum Videos", "http://npm.landcareresearch.co.nz/possums/anim/videoproxy.php?", {
+              //map: "/opt/mapserver/mapfiles/possum_density.map",
+              layers: "possum_videos_cache_nztm",
+              transparent: "true",
+              format: "image/png"
+            }, {
+              visibility: true//,
+              //tileClass: OpenLayers.Tile.Video
+            }) 
+   */
+  new ol.layer.TileLayer({
+    source: new ol.source.TiledVideoWMS({
+      url: 'http://npm.landcareresearch.co.nz/possums/anim/videoproxy.php?',
+      params: {
+          'LAYERS': 'possum_videos_cache_nztm', 
           'TILED': true,
           'VERSION': '1.1.1'
       },
