@@ -130,7 +130,11 @@ ol.VideoTile.prototype.load = function() {
     this.imageListenerKeys_ = [
       goog.events.listenOnce(this.image_, goog.events.EventType.ERROR,
           this.handleImageError_, false, this),
+      /*
       goog.events.listenOnce(this.image_, goog.events.EventType.LOAD,
+          this.handleImageLoad_, false, this)
+      */
+      goog.events.listenOnce(this.image_, "loadedmetadata",
           this.handleImageLoad_, false, this)
     ];
     this.image_.src = this.src_;

@@ -1,5 +1,6 @@
 goog.require('ol.Attribution');
 goog.require('ol.Map');
+goog.require('ol.Extent');
 goog.require('ol.RendererHints');
 goog.require('ol.View2D');
 goog.require('ol.layer.ImageLayer');
@@ -59,6 +60,7 @@ var map = new ol.Map({
 
 // http://maps.scinfo.org.nz/basemaps/wms?LAYERS=landscape_eco_painted_relief&EXCEPTIONS=application%2Fvnd.ogc.se_inimage&FORMAT=image%2Fpng&TRANSPARENT=TRUE&VERSION=1.1.1&SERVICE=WMS&REQUEST=GetMap&STYLES=&SRS=EPSG%3A2193&BBOX=1385381.5590272,5169683.7750644,1397424.7327468,5181726.948784&WIDTH=256&HEIGHT=256
 var extent = [1000000, 4700000.0000001, 2200000, 6300000];
+//var extent = new ol.Extent(1000000, 4700000.0000001, 2200000, 6300000);
 var projection = ol.projection.configureProj4jsProjection({
   code: 'EPSG:2193',
   extent: extent,
@@ -107,6 +109,7 @@ var map = new ol.Map({
   view: new ol.View2D({
     center: [1600000, 5500000],
     projection: projection,
+    scales: [100000, 250000, 500000, 1000000, 2000000, 4000000, 8000000],
     zoom: 2
   })
 });
