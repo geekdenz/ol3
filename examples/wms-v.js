@@ -66,6 +66,20 @@ var projection = ol.projection.configureProj4jsProjection({
   extent: extent,
   units: 'm'
 });
+function reverse(ar) {
+  var reversed = [];
+  for (var i = ar.length; --i >= 0;) {
+    reversed.push(ar[i]);
+  }
+  return reversed;
+}
+var resolutions = reverse([
+        3.527775872778806, 8.819439681947015,
+        17.63887936389403, 35.27775872778806,
+        88.19439681947017, 176.38879363894034,
+        352.7775872778807, 705.5551745557614,
+        1411.1103491115227, 2822.2206982230455
+    ]);
 var layers = [
   new ol.layer.TileLayer({
     source: new ol.source.TiledWMS({
@@ -97,6 +111,10 @@ new OpenLayers.Layer.VideoWMS("Possum Videos", "http://npm.landcareresearch.co.n
           'TILED': true,
           'VERSION': '1.1.1'
       },
+      tileGrid: new ol.tilegrid.TileGrid({
+        origin: [1000000, 4700000.0000001],
+        resolutions: resolutions
+      }),
       extent: extent
     })
   })

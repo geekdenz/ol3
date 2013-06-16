@@ -108,13 +108,11 @@ ol.VideoTile.prototype.handleImageError_ = function() {
  * @private
  */
 ol.VideoTile.prototype.handleImageLoad_ = function() {
-  /*
-  if (this.image_.naturalWidth && this.image_.naturalHeight) {
+  if (this.image_.videoWidth && this.image_.videoHeight) {
     this.state = ol.TileState.LOADED;
   } else {
     this.state = ol.TileState.EMPTY;
   }
-  */
   this.unlistenImage_();
   this.dispatchChangeEvent();
 };
