@@ -69,3 +69,25 @@ var map = new ol.Map({
     zoom: 2
   })
 });
+function getVids() {
+  return document.getElementsByTagName('video');
+}
+function applyAll(vs, func) {
+  for (var i = -1, leni = vs.length; ++i < leni;){
+    vs[i][func]();
+  }
+}
+function setAll(vs, prop, value) {
+  for (var i = -1, leni = vs.length; ++i < leni;){
+    vs[i][prop] = value;
+  }
+}
+function playAll() {
+  applyAll(getVids(), 'play');
+}
+function pauseAll() {
+  applyAll(getVids(), 'pause');
+}
+function rewindAll() {
+  setAll(getVids(), 'currentTime', 0);
+}

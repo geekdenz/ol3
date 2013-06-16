@@ -37,7 +37,11 @@
 
         <div class="span4">
           <h4 id="title">Tiled WMS-V or VideoWMS with custom projection example</h4>
-          <p id="shortdesc">Example of WMS-V using the projection EPSG:2193 (NZTM).</p>
+          <p id="shortdesc">Example of WMS-V using the projection EPSG:2193 (NZTM).<br/>
+            Press <a onclick="playAll()" href="#">PLAY</a> to play all videos on the page.<br/>
+            Press <a onclick="pauseAll()" href="#">PAUSE</a> to pause all videos on the page.<br/>
+            Press <a onclick="rewindAll()" href="#">REWIND</a> to rewind all videos on the page.<br/>
+          </p>
           <div id="docs">
             <p>See the <a href="wms-v.js" target="_blank">wms-v.js source</a> to see how this is done.</p>
           </div>
@@ -49,9 +53,6 @@
     </div>
 
     <script src="http://cdnjs.cloudflare.com/ajax/libs/proj4js/1.1.0/proj4js-compressed.js" type="text/javascript"></script>
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/proj4js/1.1.0/defs/EPSG21781.js" type="text/javascript"></script>
-    <!--script src="http://cdnjs.cloudflare.com/ajax/libs/proj4js/1.1.0/proj4js-compressed.js" type="text/javascript"></script-->
-    <!--script src="http://ourenvironment.scinfo.org.nz/js/OpenLayers/proj4js.js" type="text/javascript"></script-->
     <script src="http://ourenvironment.scinfo.org.nz/js/OpenLayers/defs/EPSG2193.js" type="text/javascript"></script>
     <script src="loader.js?id=wms-v" type="text/javascript"></script>
     <script src="../resources/social-links.js" type="text/javascript"></script>

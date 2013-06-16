@@ -37,6 +37,7 @@ ol.VideoTile = function(tileCoord, state, src, crossOrigin) {
    * @type {HTMLVideoElement}
    */
   this.image_ = /** @type {HTMLVideoElement} */document.createElement('video'); // This line does the trick
+  this.image_.preload = 'metadata';
   //this.image_ = new Image();//document.createElement('video'); // This line does the trick
 
   if (!goog.isNull(crossOrigin)) {
