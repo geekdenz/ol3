@@ -8,7 +8,6 @@ goog.require('ol.source.OSM');
 goog.require('ol.tilegrid.XYZ');
 goog.require('ol.source.ImageTileSource');
 
-
 function pad(n) {
     var len = (""+n).length;
     var s="";
@@ -24,8 +23,9 @@ function createUrl(x, y, z) {
     return url + s;
 }
 var view = new ol.View2D({
-    center: [-20000000,20001000],
-    zoom: 0
+    center: [20000000,20001000],
+    zoom: 1,
+    maxZoom: 6
   });
 var map = new ol.Map({
   layers: [
@@ -43,5 +43,5 @@ var map = new ol.Map({
   view: view
 });
 
-window.map = map;
-window.view = view;
+//window.map = map;
+//window.view = view;
