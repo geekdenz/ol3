@@ -1,5 +1,4 @@
 // FIXME getView3D has not return type
-// FIXME remove getExtent?
 
 goog.provide('ol.View2D');
 goog.provide('ol.View2DProperty');
@@ -9,6 +8,7 @@ goog.require('ol.Constraints');
 goog.require('ol.IView2D');
 goog.require('ol.IView3D');
 goog.require('ol.Projection');
+goog.require('ol.ProjectionUnits');
 goog.require('ol.ResolutionConstraint');
 goog.require('ol.RotationConstraint');
 goog.require('ol.RotationConstraintType');
@@ -16,7 +16,7 @@ goog.require('ol.Size');
 goog.require('ol.View');
 goog.require('ol.coordinate');
 goog.require('ol.extent');
-goog.require('ol.projection');
+goog.require('ol.proj');
 
 
 /**
@@ -32,6 +32,52 @@ ol.View2DProperty = {
 
 
 /**
+ * @class
+ * An ol.View2D object represents a simple 2D view of the map.
+ *
+ * This is the object to act upon to change the center, resolution,
+ * and rotation of the map.
+ *
+ * ### The view states
+ *
+ * An `ol.View2D` is determined by three states: `center`, `resolution`,
+ * and `rotation`. To each state corresponds a getter and a setter. E.g.
+ * `getCenter` and `setCenter` for the `center` state.
+ *
+ * An `ol.View2D` has a `projection`. The projection determines the
+ * coordinate system of the center, and its units determine the units of the
+ * resolution (projection units per pixel). The default projection is
+ * Spherical Mercator (EPSG:3857).
+ *
+ * ### The constraints
+ *
+ * `setCenter`, `setResolution` and `setRotation` can be used to change the
+ * states of the view. Any value can be passed to the setters. And the value
+ * that is passed to a setter will effectively be the value set in the view,
+ * and returned by the corresponding getter.
+ *
+ * But an `ol.View2D` object also has a *resolution constraint* and a
+ * *rotation constraint*. There's currently no *center constraint*, but
+ * this may change in the future.
+ *
+ * As said above no constraints are applied when the setters are used to set
+ * new states for the view. Applying constraints is done explicitly through
+ * the use of the `constrain*` functions (`constrainResolution` and
+ * `constrainRotation`).
+ *
+ * The main users of the constraints are the interactions and the
+ * controls. For example, double-clicking on the map changes the view to
+ * the "next" resolution. And releasing the fingers after pinch-zooming
+ * snaps to the closest resolution (with an animation).
+ *
+ * So the *resolution constraint* snaps to specific resolutions. It is
+ * determined by the following options: `resolutions`, `maxResolution`,
+ * `maxZoom`, and `zoomFactor`. If `resolutions` is set, the other three
+ * options are ignored. See {@link ol.View2DOptions} for more information.
+ *
+ * The *rotation constaint* is currently not configurable. It snaps the
+ * rotation value to zero when approaching the horizontal.
+ *
  * @constructor
  * @implements {ol.IView2D}
  * @implements {ol.IView3D}
@@ -48,36 +94,25 @@ ol.View2D = function(opt_options) {
   var values = {};
   values[ol.View2DProperty.CENTER] = goog.isDef(options.center) ?
       options.center : null;
-  values[ol.View2DProperty.PROJECTION] = ol.projection.createProjection(
+  values[ol.View2DProperty.PROJECTION] = ol.proj.createProjection(
       options.projection, 'EPSG:3857');
-  if (goog.isDef(options.resolution)) {
-    values[ol.View2DProperty.RESOLUTION] = options.resolution;
-  } else if (goog.isDef(options.zoom)) {
-    var projectionExtent = values[ol.View2DProperty.PROJECTION].getExtent();
-    var size = Math.max(
-        projectionExtent[1] - projectionExtent[0],
-        projectionExtent[3] - projectionExtent[2]);
-    values[ol.View2DProperty.RESOLUTION] =
-        size / (ol.DEFAULT_TILE_SIZE * Math.pow(2, options.zoom));
-  }
-  values[ol.View2DProperty.ROTATION] = options.rotation;
-  this.setValues(values);
 
-  var parts = ol.View2D.createResolutionConstraint_(options);
+  var resolutionConstraintInfo = ol.View2D.createResolutionConstraint_(
+      options);
 
   /**
    * @private
    * @type {number}
    */
-  this.maxResolution_ = parts[1];
+  this.maxResolution_ = resolutionConstraintInfo.maxResolution;
 
   /**
    * @private
    * @type {number}
    */
-  this.minResolution_ = parts[2];
+  this.minResolution_ = resolutionConstraintInfo.minResolution;
 
-  var resolutionConstraint = parts[0];
+  var resolutionConstraint = resolutionConstraintInfo.constraint;
   var rotationConstraint = ol.View2D.createRotationConstraint_(options);
 
   /**
@@ -87,6 +122,15 @@ ol.View2D = function(opt_options) {
   this.constraints_ = new ol.Constraints(resolutionConstraint,
       rotationConstraint);
 
+  if (goog.isDef(options.resolution)) {
+    values[ol.View2DProperty.RESOLUTION] = options.resolution;
+  } else if (goog.isDef(options.zoom)) {
+    values[ol.View2DProperty.RESOLUTION] = this.constrainResolution(
+        this.maxResolution_, options.zoom);
+  }
+  values[ol.View2DProperty.ROTATION] =
+      goog.isDef(options.rotation) ? options.rotation : 0;
+  this.setValues(values);
 };
 goog.inherits(ol.View2D, ol.View);
 
@@ -129,6 +173,7 @@ ol.View2D.prototype.calculateCenterZoom = function(resolution, anchor) {
 
 
 /**
+ * Get the constrained the resolution of this view.
  * @param {number|undefined} resolution Resolution.
  * @param {number=} opt_delta Delta.
  * @param {number=} opt_direction Direction.
@@ -143,6 +188,7 @@ ol.View2D.prototype.constrainResolution = function(
 
 
 /**
+ * Get the constrained rotation of this view.
  * @param {number|undefined} rotation Rotation.
  * @param {number=} opt_delta Delta.
  * @return {number|undefined} Constrained rotation.
@@ -167,18 +213,20 @@ goog.exportProperty(
 
 
 /**
+ * Calculate the extent for the given size in pixels, based on the current
+ * resolution and the current center.
  * @param {ol.Size} size Box pixel size.
  * @return {ol.Extent} Extent.
  */
-ol.View2D.prototype.getExtent = function(size) {
+ol.View2D.prototype.calculateExtent = function(size) {
   goog.asserts.assert(this.isDef());
   var center = this.getCenter();
   var resolution = this.getResolution();
-  var minX = center[0] - resolution * size.width / 2;
-  var maxX = center[0] + resolution * size.width / 2;
-  var minY = center[1] - resolution * size.height / 2;
-  var maxY = center[1] + resolution * size.height / 2;
-  return [minX, maxX, minY, maxX];
+  var minX = center[0] - resolution * size[0] / 2;
+  var maxX = center[0] + resolution * size[0] / 2;
+  var minY = center[1] - resolution * size[1] / 2;
+  var maxY = center[1] + resolution * size[1] / 2;
+  return [minX, maxX, minY, maxY];
 };
 
 
@@ -214,8 +262,8 @@ goog.exportProperty(
  * @return {number} Resolution.
  */
 ol.View2D.prototype.getResolutionForExtent = function(extent, size) {
-  var xResolution = (extent[1] - extent[0]) / size.width;
-  var yResolution = (extent[3] - extent[2]) / size.height;
+  var xResolution = (extent[1] - extent[0]) / size[0];
+  var yResolution = (extent[3] - extent[2]) / size[1];
   return Math.max(xResolution, yResolution);
 };
 
@@ -246,11 +294,10 @@ ol.View2D.prototype.getResolutionForValueFunction = function(opt_power) {
 
 
 /**
- * @return {number} Map rotation.
+ * @inheritDoc
  */
 ol.View2D.prototype.getRotation = function() {
-  return /** @type {number|undefined} */ (
-      this.get(ol.View2DProperty.ROTATION)) || 0;
+  return /** @type {number|undefined} */ (this.get(ol.View2DProperty.ROTATION));
 };
 goog.exportProperty(
     ol.View2D.prototype,
@@ -297,14 +344,14 @@ ol.View2D.prototype.getView2D = function() {
 ol.View2D.prototype.getView2DState = function() {
   goog.asserts.assert(this.isDef());
   var center = /** @type {ol.Coordinate} */ (this.getCenter());
-  var projection = /** @type {ol.Projection} */ (this.getProjection());
+  var projection = this.getProjection();
   var resolution = /** @type {number} */ (this.getResolution());
-  var rotation = /** @type {number} */ (this.getRotation());
+  var rotation = this.getRotation();
   return {
     center: center.slice(),
-    projection: projection,
+    projection: goog.isDef(projection) ? projection : null,
     resolution: resolution,
-    rotation: rotation
+    rotation: goog.isDef(rotation) ? rotation : 0
   };
 };
 
@@ -317,6 +364,32 @@ ol.View2D.prototype.getView3D = function() {
 
 
 /**
+ * Get the current zoom level. Return undefined if the current
+ * resolution is undefined or not a "constrained resolution".
+ * @return {number|undefined} Zoom.
+ */
+ol.View2D.prototype.getZoom = function() {
+  var zoom;
+  var resolution = this.getResolution();
+
+  if (goog.isDef(resolution)) {
+    var res, z = 0;
+    do {
+      res = this.constrainResolution(this.maxResolution_, z);
+      if (res == resolution) {
+        zoom = z;
+        break;
+      }
+      ++z;
+    } while (res > this.minResolution_);
+  }
+
+  return zoom;
+};
+
+
+/**
+ * Fit the given extent based on the given map size.
  * @param {ol.Extent} extent Extent.
  * @param {ol.Size} size Box pixel size.
  */
@@ -338,6 +411,7 @@ ol.View2D.prototype.isDef = function() {
 
 
 /**
+ * Set the center of the current view.
  * @param {ol.Coordinate|undefined} center Center.
  */
 ol.View2D.prototype.setCenter = function(center) {
@@ -350,6 +424,7 @@ goog.exportProperty(
 
 
 /**
+ * Set the projection of this view.
  * @param {ol.Projection|undefined} projection Projection.
  */
 ol.View2D.prototype.setProjection = function(projection) {
@@ -362,6 +437,7 @@ goog.exportProperty(
 
 
 /**
+ * Set the resolution for this view.
  * @param {number|undefined} resolution Resolution.
  */
 ol.View2D.prototype.setResolution = function(resolution) {
@@ -374,6 +450,7 @@ goog.exportProperty(
 
 
 /**
+ * Set the rotation for this view.
  * @param {number|undefined} rotation Rotation.
  */
 ol.View2D.prototype.setRotation = function(rotation) {
@@ -386,10 +463,20 @@ goog.exportProperty(
 
 
 /**
+ * Zoom to a specific zoom level.
+ * @param {number} zoom Zoom level.
+ */
+ol.View2D.prototype.setZoom = function(zoom) {
+  var resolution = this.constrainResolution(this.maxResolution_, zoom, 0);
+  this.setResolution(resolution);
+};
+
+
+/**
  * @private
  * @param {ol.View2DOptions} options View2D options.
- * @return {Array} Array of three elements: the resolution constraint,
- *     maxResolution, and minResolution.
+ * @return {{constraint: ol.ResolutionConstraintType, maxResolution: number,
+ *     minResolution: number}}
  */
 ol.View2D.createResolutionConstraint_ = function(options) {
   var resolutionConstraint;
@@ -404,11 +491,16 @@ ol.View2D.createResolutionConstraint_ = function(options) {
   } else {
     maxResolution = options.maxResolution;
     if (!goog.isDef(maxResolution)) {
-      var projectionExtent = ol.projection.createProjection(
-          options.projection, 'EPSG:3857').getExtent();
-      maxResolution = Math.max(
-          projectionExtent[1] - projectionExtent[0],
-          projectionExtent[3] - projectionExtent[2]) / ol.DEFAULT_TILE_SIZE;
+      var projection = options.projection;
+      var projectionExtent = ol.proj.createProjection(projection, 'EPSG:3857')
+          .getExtent();
+      var size = goog.isNull(projectionExtent) ?
+          // use an extent that can fit the whole world if need be
+          360 * ol.METERS_PER_UNIT[ol.ProjectionUnits.DEGREES] /
+              ol.METERS_PER_UNIT[projection.getUnits()] :
+          Math.max(projectionExtent[1] - projectionExtent[0],
+              projectionExtent[3] - projectionExtent[2]);
+      maxResolution = size / ol.DEFAULT_TILE_SIZE;
     }
     var maxZoom = options.maxZoom;
     if (!goog.isDef(maxZoom)) {
@@ -422,7 +514,8 @@ ol.View2D.createResolutionConstraint_ = function(options) {
     resolutionConstraint = ol.ResolutionConstraint.createSnapToPower(
         zoomFactor, maxResolution, maxZoom);
   }
-  return [resolutionConstraint, maxResolution, minResolution];
+  return {constraint: resolutionConstraint, maxResolution: maxResolution,
+    minResolution: minResolution};
 };
 
 

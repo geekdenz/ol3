@@ -29,11 +29,21 @@ ol.control.ZOOMSLIDER_ANIMATION_DURATION = 200;
 
 
 /**
+ * A slider type of control for zooming.
+ *
+ * Example:
+ *
+ *     var zoomslider = new ol.control.ZoomSlider({
+ *       map: map
+ *     });
+ *
  * @constructor
  * @extends {ol.control.Control}
- * @param {ol.control.ZoomSliderOptions} options Zoom slider options.
+ * @param {ol.control.ZoomSliderOptions=} opt_options Zoom slider options.
  */
-ol.control.ZoomSlider = function(options) {
+ol.control.ZoomSlider = function(opt_options) {
+
+  var options = goog.isDef(opt_options) ? opt_options : {};
 
   /**
    * Will hold the current resolution of the view.
@@ -53,22 +63,35 @@ ol.control.ZoomSlider = function(options) {
   this.direction_ = ol.control.ZoomSlider.direction.VERTICAL;
 
   /**
+   * Whether the slider is initialized.
+   * @type {boolean}
+   * @private
+   */
+  this.sliderInitialized_ = false;
+
+  /**
    * @private
    * @type {Array.<?number>}
    */
   this.draggerListenerKeys_ = null;
 
-  var elem = this.createDom_();
-  this.dragger_ = this.createDraggable_(elem);
+  var className = goog.isDef(options.className) ?
+      options.className : 'ol-zoomslider';
+  var sliderCssCls = className + ' ' + ol.css.CLASS_UNSELECTABLE;
+  var thumbCssCls = className + '-thumb' + ' ' + ol.css.CLASS_UNSELECTABLE;
+  var element = goog.dom.createDom(goog.dom.TagName.DIV, sliderCssCls,
+      goog.dom.createDom(goog.dom.TagName.DIV, thumbCssCls));
+
+  this.dragger_ = this.createDraggable_(element);
 
   // FIXME currently only a do nothing function is bound.
-  goog.events.listen(elem, [
+  goog.events.listen(element, [
     goog.events.EventType.TOUCHEND,
     goog.events.EventType.CLICK
   ], this.handleContainerClick_, false, this);
 
   goog.base(this, {
-    element: elem,
+    element: element,
     map: options.map
   });
 };
@@ -87,32 +110,12 @@ ol.control.ZoomSlider.direction = {
 
 
 /**
- * The CSS class that we'll give the zoomslider container.
- *
- * @const {string}
- */
-ol.control.ZoomSlider.CSS_CLASS_CONTAINER = 'ol-zoomslider';
-
-
-/**
- * The CSS class that we'll give the zoomslider thumb.
- *
- * @const {string}
- */
-ol.control.ZoomSlider.CSS_CLASS_THUMB =
-    ol.control.ZoomSlider.CSS_CLASS_CONTAINER + '-thumb';
-
-
-/**
  * @inheritDoc
  */
 ol.control.ZoomSlider.prototype.setMap = function(map) {
   goog.base(this, 'setMap', map);
-  this.initSlider_();
-  var resolution = map.getView().getView2D().getResolution();
-  if (goog.isDef(resolution)) {
-    this.currentResolution_ = resolution;
-    this.positionThumbForResolution_(resolution);
+  if (!goog.isNull(map)) {
+    map.render();
   }
 };
 
@@ -148,6 +151,7 @@ ol.control.ZoomSlider.prototype.initSlider_ = function() {
     limits = new goog.math.Rect(0, 0, 0, h);
   }
   this.dragger_.setLimits(limits);
+  this.sliderInitialized_ = true;
 };
 
 
@@ -155,6 +159,14 @@ ol.control.ZoomSlider.prototype.initSlider_ = function() {
  * @inheritDoc
  */
 ol.control.ZoomSlider.prototype.handleMapPostrender = function(mapEvent) {
+  if (goog.isNull(mapEvent.frameState)) {
+    return;
+  }
+  goog.asserts.assert(
+      goog.isDefAndNotNull(mapEvent.frameState.view2DState));
+  if (!this.sliderInitialized_) {
+    this.initSlider_();
+  }
   var res = mapEvent.frameState.view2DState.resolution;
   if (res !== this.currentResolution_) {
     this.currentResolution_ = res;
@@ -298,25 +310,4 @@ ol.control.ZoomSlider.prototype.createDraggable_ = function(elem) {
     ], this.handleSliderChange_, undefined, this)
   ];
   return dragger;
-};
-
-
-/**
- * Setup the DOM-structure we need for the zoomslider.
- *
- * @param {Element=} opt_elem The element for the slider.
- * @return {Element} The correctly set up DOMElement.
- * @private
- */
-ol.control.ZoomSlider.prototype.createDom_ = function(opt_elem) {
-  var elem,
-      sliderCssCls = ol.control.ZoomSlider.CSS_CLASS_CONTAINER + ' ' +
-          ol.css.CLASS_UNSELECTABLE,
-      thumbCssCls = ol.control.ZoomSlider.CSS_CLASS_THUMB + ' ' +
-          ol.css.CLASS_UNSELECTABLE;
-
-  elem = goog.dom.createDom(goog.dom.TagName.DIV, sliderCssCls,
-      goog.dom.createDom(goog.dom.TagName.DIV, thumbCssCls));
-
-  return elem;
 };

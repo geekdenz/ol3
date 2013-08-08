@@ -9,7 +9,7 @@ describe('ol.layer.Layer', function() {
     beforeEach(function() {
       layer = new ol.layer.Layer({
         source: new ol.source.Source({
-          projection: ol.projection.get('EPSG:4326')
+          projection: ol.proj.get('EPSG:4326')
         })
       });
     });
@@ -53,14 +53,15 @@ describe('ol.layer.Layer', function() {
     it('accepts options', function() {
       var layer = new ol.layer.Layer({
         source: new ol.source.Source({
-          projection: ol.projection.get('EPSG:4326')
+          projection: ol.proj.get('EPSG:4326')
         }),
         brightness: 0.5,
         contrast: 10,
         hue: 180,
         opacity: 0.5,
         saturation: 5,
-        visible: false
+        visible: false,
+        foo: 42
       });
 
       expect(layer.getBrightness()).to.be(0.5);
@@ -69,6 +70,7 @@ describe('ol.layer.Layer', function() {
       expect(layer.getOpacity()).to.be(0.5);
       expect(layer.getSaturation()).to.be(5);
       expect(layer.getVisible()).to.be(false);
+      expect(layer.get('foo')).to.be(42);
 
       goog.dispose(layer);
     });
@@ -82,7 +84,7 @@ describe('ol.layer.Layer', function() {
     beforeEach(function() {
       layer = new ol.layer.Layer({
         source: new ol.source.Source({
-          projection: ol.projection.get('EPSG:4326')
+          projection: ol.proj.get('EPSG:4326')
         })
       });
     });
@@ -101,16 +103,6 @@ describe('ol.layer.Layer', function() {
       expect(layer.getBrightness()).to.be(-0.7);
     });
 
-    it('clamps to 1', function() {
-      layer.setBrightness(1.5);
-      expect(layer.getBrightness()).to.be(1);
-    });
-
-    it('clamps to -1', function() {
-      layer.setBrightness(-3);
-      expect(layer.getBrightness()).to.be(-1);
-    });
-
   });
 
   describe('#setContrast', function() {
@@ -120,7 +112,7 @@ describe('ol.layer.Layer', function() {
     beforeEach(function() {
       layer = new ol.layer.Layer({
         source: new ol.source.Source({
-          projection: ol.projection.get('EPSG:4326')
+          projection: ol.proj.get('EPSG:4326')
         })
       });
     });
@@ -132,11 +124,6 @@ describe('ol.layer.Layer', function() {
     it('accepts a small positive number', function() {
       layer.setContrast(0.3);
       expect(layer.getContrast()).to.be(0.3);
-    });
-
-    it('clamps to 0', function() {
-      layer.setContrast(-0.7);
-      expect(layer.getContrast()).to.be(0);
     });
 
     it('accepts a big positive number', function() {
@@ -154,7 +141,7 @@ describe('ol.layer.Layer', function() {
     beforeEach(function() {
       layer = new ol.layer.Layer({
         source: new ol.source.Source({
-          projection: ol.projection.get('EPSG:4326')
+          projection: ol.proj.get('EPSG:4326')
         })
       });
     });
@@ -193,7 +180,7 @@ describe('ol.layer.Layer', function() {
     beforeEach(function() {
       layer = new ol.layer.Layer({
         source: new ol.source.Source({
-          projection: ol.projection.get('EPSG:4326')
+          projection: ol.proj.get('EPSG:4326')
         })
       });
     });
@@ -207,16 +194,6 @@ describe('ol.layer.Layer', function() {
       expect(layer.getOpacity()).to.be(0.3);
     });
 
-    it('clamps to 0', function() {
-      layer.setOpacity(-1.5);
-      expect(layer.getOpacity()).to.be(0);
-    });
-
-    it('clamps to 1', function() {
-      layer.setOpacity(3);
-      expect(layer.getOpacity()).to.be(1);
-    });
-
   });
 
 
@@ -227,7 +204,7 @@ describe('ol.layer.Layer', function() {
     beforeEach(function() {
       layer = new ol.layer.Layer({
         source: new ol.source.Source({
-          projection: ol.projection.get('EPSG:4326')
+          projection: ol.proj.get('EPSG:4326')
         })
       });
     });
@@ -239,11 +216,6 @@ describe('ol.layer.Layer', function() {
     it('accepts a small positive number', function() {
       layer.setSaturation(0.3);
       expect(layer.getSaturation()).to.be(0.3);
-    });
-
-    it('clamps to 0', function() {
-      layer.setSaturation(-0.7);
-      expect(layer.getSaturation()).to.be(0);
     });
 
     it('accepts a big positive number', function() {
@@ -259,7 +231,7 @@ describe('ol.layer.Layer', function() {
     it('sets visible property', function() {
       var layer = new ol.layer.Layer({
         source: new ol.source.Source({
-          projection: ol.projection.get('EPSG:4326')
+          projection: ol.proj.get('EPSG:4326')
         })
       });
 
@@ -278,5 +250,5 @@ describe('ol.layer.Layer', function() {
 
 goog.require('goog.dispose');
 goog.require('ol.layer.Layer');
-goog.require('ol.projection');
+goog.require('ol.proj');
 goog.require('ol.source.Source');

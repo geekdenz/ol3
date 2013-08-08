@@ -1,8 +1,10 @@
 goog.provide('ol.parser.GeoJSON');
 
 goog.require('goog.asserts');
+goog.require('goog.object');
 goog.require('ol.Feature');
 goog.require('ol.geom.Geometry');
+goog.require('ol.geom.GeometryCollection');
 goog.require('ol.geom.GeometryType');
 goog.require('ol.geom.LineString');
 goog.require('ol.geom.MultiLineString');
@@ -24,6 +26,7 @@ goog.require('ol.parser.StringFeatureParser');
  */
 ol.parser.GeoJSON = function() {};
 goog.inherits(ol.parser.GeoJSON, ol.parser.Parser);
+goog.addSingletonGetter(ol.parser.GeoJSON);
 
 
 /**
@@ -40,15 +43,28 @@ ol.parser.GeoJSON.prototype.read = function(str) {
 
 
 /**
+ * Parse a GeoJSON string.
+ * @param {string} str GeoJSON string.
+ * @return {ol.Feature|Array.<ol.Feature>|
+ *    ol.geom.Geometry|Array.<ol.geom.Geometry>} Parsed geometry or array
+ *    of geometries.
+ */
+ol.parser.GeoJSON.read = function(str) {
+  return ol.parser.GeoJSON.getInstance().read(str);
+};
+
+
+/**
  * Parse a GeoJSON feature collection.
  * @param {string} str GeoJSON feature collection.
  * @param {ol.parser.ReadFeaturesOptions=} opt_options Reader options.
- * @return {Array.<ol.Feature>} Array of features.
+ * @return {ol.parser.ReadFeaturesResult} Features and metadata.
  */
 ol.parser.GeoJSON.prototype.readFeaturesFromString =
     function(str, opt_options) {
   var json = /** @type {GeoJSONFeatureCollection} */ (JSON.parse(str));
-  return this.parseFeatureCollection_(json, opt_options);
+  return {features: this.parseFeatureCollection_(json, opt_options),
+    metadata: {projection: 'EPSG:4326'}};
 };
 
 
@@ -57,11 +73,12 @@ ol.parser.GeoJSON.prototype.readFeaturesFromString =
  * @param {GeoJSONFeatureCollection} object GeoJSON feature collection decoded
  *     from JSON.
  * @param {ol.parser.ReadFeaturesOptions=} opt_options Reader options.
- * @return {Array.<ol.Feature>} Array of features.
+ * @return {ol.parser.ReadFeaturesResult} Features and metadata.
  */
 ol.parser.GeoJSON.prototype.readFeaturesFromObject =
     function(object, opt_options) {
-  return this.parseFeatureCollection_(object, opt_options);
+  return {features: this.parseFeatureCollection_(object, opt_options),
+    metadata: {projection: 'EPSG:4326'}};
 };
 
 
@@ -129,6 +146,9 @@ ol.parser.GeoJSON.prototype.parseFeature_ = function(json, opt_options) {
       geometry = null,
       options = opt_options || {};
   var feature = new ol.Feature(json.properties);
+  if (goog.isDef(json.id)) {
+    feature.setFeatureId(json.id);
+  }
   if (geomJson) {
     var type = geomJson.type;
     var callback = options.callback;
@@ -269,6 +289,124 @@ ol.parser.GeoJSON.prototype.parsePoint_ = function(json, opt_vertices) {
  */
 ol.parser.GeoJSON.prototype.parsePolygon_ = function(json, opt_vertices) {
   return new ol.geom.Polygon(json.coordinates, opt_vertices);
+};
+
+
+/**
+ * @param {ol.geom.Geometry} geometry Geometry to encode.
+ * @return {GeoJSONGeometry} GeoJSON geometry.
+ * @private
+ */
+ol.parser.GeoJSON.prototype.encodeGeometry_ = function(geometry) {
+  var type = geometry.getType();
+  return /** @type {GeoJSONGeometry} */({
+    type: goog.object.findKey(ol.parser.GeoJSON.GeometryType,
+        function(value, key) {
+          return value === type;
+        }
+    ),
+    coordinates: geometry.getCoordinates()
+  });
+};
+
+
+/**
+ * @param {ol.geom.GeometryCollection} collection Geometry collection to
+ *     encode.
+ * @return {GeoJSONGeometryCollection} GeoJSON geometry collection.
+ * @private
+ */
+ol.parser.GeoJSON.prototype.encodeGeometryCollection_ = function(collection) {
+  var geometries = [];
+  for (var i = 0, ii = collection.components.length; i < ii; ++i) {
+    geometries.push(this.encodeGeometry_(collection.components[i]));
+  }
+  return /** @type {GeoJSONGeometryCollection} */({
+    type: 'GeometryCollection',
+    geometries: geometries
+  });
+};
+
+
+/**
+ * @param {Array.<ol.Feature>} collection Feature collection to encode.
+ * @return {GeoJSONFeatureCollection} GeoJSON feature collection.
+ * @private
+ */
+ol.parser.GeoJSON.prototype.encodeFeatureCollection_ = function(collection) {
+  var features = [];
+  for (var i = 0, ii = collection.length; i < ii; ++i) {
+    features.push(this.encodeFeature_(collection[i]));
+  }
+  return /** @type {GeoJSONFeatureCollection} */({
+    type: 'FeatureCollection',
+    features: features
+  });
+};
+
+
+/**
+ * @param {ol.Feature} feature Feature to encode.
+ * @return {GeoJSONFeature} GeoJSON feature.
+ * @private
+ */
+ol.parser.GeoJSON.prototype.encodeFeature_ = function(feature) {
+  var geometry = feature.getGeometry(),
+      attributes = feature.getAttributes();
+  var properties = goog.object.filter(attributes,
+      function(element, index, array) {
+        return !(element instanceof ol.geom.Geometry);
+      });
+  return /** @type {GeoJSONFeature} */({
+    type: 'Feature',
+    properties: properties,
+    geometry: this.encodeGeometry_(geometry)
+  });
+};
+
+
+/**
+ * @param {ol.geom.GeometryCollection|ol.geom.Geometry|Array.<ol.Feature>|
+ *     ol.Feature} obj The object to encode.
+ * @return {string} The GeoJSON as string.
+ * @private
+ */
+ol.parser.GeoJSON.prototype.encode_ = function(obj) {
+  var result;
+  if (obj instanceof ol.geom.GeometryCollection) {
+    result = this.encodeGeometryCollection_(obj);
+  } else if (obj instanceof ol.geom.Geometry) {
+    result = this.encodeGeometry_(obj);
+  } else if (obj instanceof ol.Feature) {
+    result = this.encodeFeature_(obj);
+  } else if (goog.isArray(obj)) {
+    result = this.encodeFeatureCollection_(obj);
+  }
+  return JSON.stringify(result);
+};
+
+
+/**
+ * Write out a geometry, geometry collection, feature or an array of features
+ *     as a GeoJSON string.
+ * @param {ol.geom.Geometry|ol.geom.GeometryCollection|ol.Feature|
+ *     Array.<ol.Feature>} obj The object to encode.
+ * @return {string} GeoJSON for the geometry.
+ */
+ol.parser.GeoJSON.write = function(obj) {
+  return ol.parser.GeoJSON.getInstance().write(obj);
+};
+
+
+/**
+ * Write out a geometry, geometry collection, feature or an array of features
+ *     as a GeoJSON string.
+ * @param {ol.geom.Geometry|ol.geom.GeometryCollection|ol.Feature|
+ *     Array.<ol.Feature>} obj The object to encode.
+ * @return {string} GeoJSON for the geometry.
+ */
+ol.parser.GeoJSON.prototype.write = function(obj) {
+  return this.encode_(obj);
 };
 
 

@@ -1,19 +1,30 @@
 goog.provide('ol.control.ScaleLine');
+goog.provide('ol.control.ScaleLineProperty');
 goog.provide('ol.control.ScaleLineUnits');
 
 goog.require('goog.array');
 goog.require('goog.asserts');
 goog.require('goog.dom');
 goog.require('goog.dom.TagName');
+goog.require('goog.events');
 goog.require('goog.math');
 goog.require('goog.style');
-goog.require('ol.FrameState');
+goog.require('ol.Object');
 goog.require('ol.ProjectionUnits');
 goog.require('ol.TransformFunction');
+goog.require('ol.View2DState');
 goog.require('ol.control.Control');
 goog.require('ol.css');
-goog.require('ol.projection');
+goog.require('ol.proj');
 goog.require('ol.sphere.NORMAL');
+
+
+/**
+ * @enum {string}
+ */
+ol.control.ScaleLineProperty = {
+  UNITS: 'units'
+};
 
 
 /**
@@ -30,6 +41,18 @@ ol.control.ScaleLineUnits = {
 
 
 /**
+ * Create a control to help users estimate distances on a map.
+ *
+ * Example:
+ *
+ *     var map = new ol.Map({
+ *       controls: ol.control.defaults({}, [
+ *         new ol.control.ScaleLine({
+ *           units: ol.control.ScaleLineUnits.IMPERIAL
+ *         })
+ *       ]),
+ *       ...
+ *
  * @constructor
  * @extends {ol.control.Control}
  * @param {ol.control.ScaleLineOptions=} opt_options Scale line options.
@@ -38,12 +61,15 @@ ol.control.ScaleLine = function(opt_options) {
 
   var options = opt_options || {};
 
+  var className = goog.isDef(options.className) ?
+      options.className : 'ol-scale-line';
+
   /**
    * @private
    * @type {Element}
    */
   this.innerElement_ = goog.dom.createDom(goog.dom.TagName.DIV, {
-    'class': 'ol-scale-line-inner'
+    'class': className + '-inner'
   });
 
   /**
@@ -51,21 +77,20 @@ ol.control.ScaleLine = function(opt_options) {
    * @type {Element}
    */
   this.element_ = goog.dom.createDom(goog.dom.TagName.DIV, {
-    'class': 'ol-scale-line ' + ol.css.CLASS_UNSELECTABLE
+    'class': className + ' ' + ol.css.CLASS_UNSELECTABLE
   }, this.innerElement_);
+
+  /**
+   * @private
+   * @type {?ol.View2DState}
+   */
+  this.view2DState_ = null;
 
   /**
    * @private
    * @type {number}
    */
   this.minWidth_ = goog.isDef(options.minWidth) ? options.minWidth : 64;
-
-  /**
-   * @private
-   * @type {ol.control.ScaleLineUnits}
-   */
-  this.units_ = goog.isDef(options.units) ?
-      options.units : ol.control.ScaleLineUnits.METRIC;
 
   /**
    * @private
@@ -97,6 +122,12 @@ ol.control.ScaleLine = function(opt_options) {
     target: options.target
   });
 
+  goog.events.listen(
+      this, ol.Object.getChangeEventType(ol.control.ScaleLineProperty.UNITS),
+      this.handleUnitsChanged_, false, this);
+
+  this.setUnits(options.units || ol.control.ScaleLineUnits.METRIC);
+
 };
 goog.inherits(ol.control.ScaleLine, ol.control.Control);
 
@@ -109,28 +140,66 @@ ol.control.ScaleLine.LEADING_DIGITS = [1, 2, 5];
 
 
 /**
+ * @return {ol.control.ScaleLineUnits|undefined} units.
+ */
+ol.control.ScaleLine.prototype.getUnits = function() {
+  return /** @type {ol.control.ScaleLineUnits|undefined} */ (
+      this.get(ol.control.ScaleLineProperty.UNITS));
+};
+goog.exportProperty(
+    ol.control.ScaleLine.prototype,
+    'getUnits',
+    ol.control.ScaleLine.prototype.getUnits);
+
+
+/**
  * @inheritDoc
  */
 ol.control.ScaleLine.prototype.handleMapPostrender = function(mapEvent) {
-  this.updateElement_(mapEvent.frameState);
+  var frameState = mapEvent.frameState;
+  if (goog.isNull(frameState)) {
+    this.view2DState_ = null;
+  } else {
+    this.view2DState_ = frameState.view2DState;
+  }
+  this.updateElement_();
 };
 
 
 /**
- * @param {?ol.FrameState} frameState Frame state.
  * @private
  */
-ol.control.ScaleLine.prototype.updateElement_ = function(frameState) {
+ol.control.ScaleLine.prototype.handleUnitsChanged_ = function() {
+  this.updateElement_();
+};
 
-  if (goog.isNull(frameState)) {
+
+/**
+ * @param {ol.control.ScaleLineUnits} units Units.
+ */
+ol.control.ScaleLine.prototype.setUnits = function(units) {
+  this.set(ol.control.ScaleLineProperty.UNITS, units);
+};
+goog.exportProperty(
+    ol.control.ScaleLine.prototype,
+    'setUnits',
+    ol.control.ScaleLine.prototype.setUnits);
+
+
+/**
+ * @private
+ */
+ol.control.ScaleLine.prototype.updateElement_ = function() {
+  var view2DState = this.view2DState_;
+
+  if (goog.isNull(view2DState)) {
     if (this.renderedVisible_) {
-      goog.style.showElement(this.element_, false);
+      goog.style.setElementShown(this.element_, false);
       this.renderedVisible_ = false;
     }
     return;
   }
 
-  var view2DState = frameState.view2DState;
   var center = view2DState.center;
   var projection = view2DState.projection;
   var pointResolution =
@@ -138,9 +207,10 @@ ol.control.ScaleLine.prototype.updateElement_ = function(frameState) {
   var projectionUnits = projection.getUnits();
 
   var cosLatitude;
+  var units = this.getUnits();
   if (projectionUnits == ol.ProjectionUnits.DEGREES &&
-      (this.units_ == ol.control.ScaleLineUnits.METRIC ||
-       this.units_ == ol.control.ScaleLineUnits.IMPERIAL)) {
+      (units == ol.control.ScaleLineUnits.METRIC ||
+       units == ol.control.ScaleLineUnits.IMPERIAL)) {
 
     // Convert pointResolution from degrees to meters
     this.toEPSG4326_ = null;
@@ -150,12 +220,12 @@ ol.control.ScaleLine.prototype.updateElement_ = function(frameState) {
 
   } else if ((projectionUnits == ol.ProjectionUnits.FEET ||
       projectionUnits == ol.ProjectionUnits.METERS) &&
-      this.units_ == ol.control.ScaleLineUnits.DEGREES) {
+      units == ol.control.ScaleLineUnits.DEGREES) {
 
     // Convert pointResolution from meters or feet to degrees
     if (goog.isNull(this.toEPSG4326_)) {
-      this.toEPSG4326_ = ol.projection.getTransformFromProjections(
-          projection, ol.projection.get('EPSG:4326'));
+      this.toEPSG4326_ = ol.proj.getTransformFromProjections(
+          projection, ol.proj.get('EPSG:4326'));
     }
     cosLatitude = Math.cos(goog.math.toRadians(this.toEPSG4326_(center)[1]));
     var radius = ol.sphere.NORMAL.radius;
@@ -166,21 +236,19 @@ ol.control.ScaleLine.prototype.updateElement_ = function(frameState) {
     projectionUnits = ol.ProjectionUnits.DEGREES;
 
   } else {
-
     this.toEPSG4326_ = null;
-
   }
 
   goog.asserts.assert(
-      ((this.units_ == ol.control.ScaleLineUnits.METRIC ||
-        this.units_ == ol.control.ScaleLineUnits.IMPERIAL) &&
+      ((units == ol.control.ScaleLineUnits.METRIC ||
+        units == ol.control.ScaleLineUnits.IMPERIAL) &&
        projectionUnits == ol.ProjectionUnits.METERS) ||
-      (this.units_ == ol.control.ScaleLineUnits.DEGREES &&
+      (units == ol.control.ScaleLineUnits.DEGREES &&
        projectionUnits == ol.ProjectionUnits.DEGREES));
 
   var nominalCount = this.minWidth_ * pointResolution;
   var suffix = '';
-  if (this.units_ == ol.control.ScaleLineUnits.DEGREES) {
+  if (units == ol.control.ScaleLineUnits.DEGREES) {
     if (nominalCount < 1 / 60) {
       suffix = '\u2033'; // seconds
       pointResolution *= 3600;
@@ -190,7 +258,7 @@ ol.control.ScaleLine.prototype.updateElement_ = function(frameState) {
     } else {
       suffix = '\u00b0'; // degrees
     }
-  } else if (this.units_ == ol.control.ScaleLineUnits.IMPERIAL) {
+  } else if (units == ol.control.ScaleLineUnits.IMPERIAL) {
     if (nominalCount < 0.9144) {
       suffix = 'in';
       pointResolution /= 0.0254;
@@ -201,10 +269,10 @@ ol.control.ScaleLine.prototype.updateElement_ = function(frameState) {
       suffix = 'mi';
       pointResolution /= 1609.344;
     }
-  } else if (this.units_ == ol.control.ScaleLineUnits.NAUTICAL) {
+  } else if (units == ol.control.ScaleLineUnits.NAUTICAL) {
     pointResolution /= 1852;
     suffix = 'nm';
-  } else if (this.units_ == ol.control.ScaleLineUnits.METRIC) {
+  } else if (units == ol.control.ScaleLineUnits.METRIC) {
     if (nominalCount < 1) {
       suffix = 'mm';
       pointResolution *= 1000;
@@ -214,7 +282,7 @@ ol.control.ScaleLine.prototype.updateElement_ = function(frameState) {
       suffix = 'km';
       pointResolution /= 1000;
     }
-  } else if (this.units_ == ol.control.ScaleLineUnits.US) {
+  } else if (units == ol.control.ScaleLineUnits.US) {
     if (nominalCount < 0.9144) {
       suffix = 'in';
       pointResolution *= 39.37;
@@ -254,7 +322,7 @@ ol.control.ScaleLine.prototype.updateElement_ = function(frameState) {
   }
 
   if (!this.renderedVisible_) {
-    goog.style.showElement(this.element_, true);
+    goog.style.setElementShown(this.element_, true);
     this.renderedVisible_ = true;
   }
 

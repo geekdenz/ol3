@@ -5,11 +5,10 @@ goog.require('goog.array');
 goog.require('goog.asserts');
 goog.require('goog.net.Jsonp');
 goog.require('ol.Attribution');
-goog.require('ol.Size');
 goog.require('ol.TileRange');
 goog.require('ol.TileUrlFunction');
 goog.require('ol.extent');
-goog.require('ol.projection');
+goog.require('ol.proj');
 goog.require('ol.source.ImageTileSource');
 goog.require('ol.tilegrid.XYZ');
 
@@ -25,7 +24,7 @@ ol.source.BingMaps = function(options) {
   goog.base(this, {
     crossOrigin: 'anonymous',
     opaque: true,
-    projection: ol.projection.get('EPSG:3857')
+    projection: ol.proj.get('EPSG:3857')
   });
 
   /**
@@ -64,17 +63,16 @@ ol.source.BingMaps.prototype.handleImageryMetadataResponse =
   goog.asserts.assert(response.statusDescription == 'OK');
 
   var brandLogoUri = response.brandLogoUri;
-  var copyright = response.copyright;
+  //var copyright = response.copyright;  // FIXME do we need to display this?
   goog.asserts.assert(response.resourceSets.length == 1);
   var resourceSet = response.resourceSets[0];
   goog.asserts.assert(resourceSet.resources.length == 1);
   var resource = resourceSet.resources[0];
 
-  var tileSize = new ol.Size(resource.imageWidth, resource.imageHeight);
   var tileGrid = new ol.tilegrid.XYZ({
     minZoom: resource.zoomMin,
     maxZoom: resource.zoomMax,
-    tileSize: tileSize
+    tileSize: [resource.imageWidth, resource.imageHeight]
   });
   this.tileGrid = tileGrid;
 
@@ -95,7 +93,7 @@ ol.source.BingMaps.prototype.handleImageryMetadataResponse =
                      * @return {string|undefined} Tile URL.
                      */
                     function(tileCoord, projection) {
-                      goog.asserts.assert(ol.projection.equivalent(
+                      goog.asserts.assert(ol.proj.equivalent(
                           projection, this.getProjection()));
                       if (goog.isNull(tileCoord)) {
                         return undefined;
@@ -106,8 +104,8 @@ ol.source.BingMaps.prototype.handleImageryMetadataResponse =
                     });
               })));
 
-  var transform = ol.projection.getTransformFromProjections(
-      ol.projection.get('EPSG:4326'), this.getProjection());
+  var transform = ol.proj.getTransformFromProjections(
+      ol.proj.get('EPSG:4326'), this.getProjection());
   var attributions = goog.array.map(
       resource.imageryProviders,
       function(imageryProvider) {

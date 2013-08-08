@@ -42,6 +42,8 @@
     "//json.js",
     "../externs/bingmaps.js",
     "../externs/geojson.js",
+    "../externs/topojson.js",
+    "../externs/oli.js",
     "../externs/proj4js.js",
     "../externs/tilejson.js"
   ],
@@ -97,7 +99,8 @@
     "goog.debug.logRecordSerializer",
     "goog.debug.makeWhitespaceVisible",
     "goog.debug.normalizeErrorObject",
-    "goog.debug.reflect"
+    "goog.debug.reflect",
+    "goog.log"
   ]
 
 }

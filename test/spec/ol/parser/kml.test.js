@@ -5,70 +5,46 @@ describe('ol.parser.kml', function() {
   var parser = new ol.parser.KML();
 
   describe('Test KML parser', function() {
-    it('Polygon read correctly', function() {
+    it('Polygon read / written correctly', function(done) {
       var url = 'spec/ol/parser/kml/polygon.kml';
       afterLoadXml(url, function(xml) {
         var obj = parser.read(xml);
         var output = parser.write(obj);
-        var expected = '<kml xmlns="http://www.opengis.net/kml/2.2">' +
-            '<Document><name>Polygon.kml</name><open>0</open><Placemark>' +
-            '<name>hollow box</name><Polygon><outerBoundaryIs><LinearRing>' +
-            '<coordinates>-122.366278,37.818844,30 ' +
-            '-122.365248,37.819267,30 ' +
-            '-122.36564,37.819861,30 ' +
-            '-122.366669,37.819429,30 ' +
-            '-122.366278,37.818844,30</coordinates></LinearRing>' +
-            '</outerBoundaryIs><innerBoundaryIs><LinearRing><coordinates>' +
-            '-122.366212,37.818977,30 ' +
-            '-122.365424,37.819294,30 ' +
-            '-122.365704,37.819731,30 ' +
-            '-122.366488,37.819402,30 ' +
-            '-122.366212,37.818977,30</coordinates></LinearRing>' +
-            '</innerBoundaryIs></Polygon></Placemark></Document></kml>';
-        expect(output).to.eql(expected);
+        expect(goog.dom.xml.loadXml(output)).to.xmleql(xml);
         expect(obj.features.length).to.eql(1);
         var geom = obj.features[0].getGeometry();
+        expect(obj.features[0].getFeatureId()).to.eql('KML.Polygon');
         expect(geom instanceof ol.geom.Polygon).to.be.ok();
         expect(geom.dimension).to.eql(3);
+        done();
       });
     });
-    it('Linestring read correctly', function() {
+    it('Linestring read / written correctly', function(done) {
       var url = 'spec/ol/parser/kml/linestring.kml';
       afterLoadXml(url, function(xml) {
         var obj = parser.read(xml);
         var output = parser.write(obj);
-        var expected = '<kml xmlns="http://www.opengis.net/kml/2.2">' +
-            '<Document><name>LineString.kml</name><open>1</open><Placemark>' +
-            '<name>unextruded</name><LineString><coordinates>-122.364383,' +
-            '37.824664,0 -122.364152,37.824322,0</coordinates></LineString>' +
-            '</Placemark><Placemark><name>extruded</name><LineString>' +
-            '<coordinates>-122.364167,37.824787,50 -122.363917,37.824423,50' +
-            '</coordinates></LineString></Placemark></Document></kml>';
-        expect(output).to.eql(expected);
+        expect(goog.dom.xml.loadXml(output)).to.xmleql(xml);
         expect(obj.features.length).to.eql(2);
         var geom = obj.features[0].getGeometry();
         expect(geom instanceof ol.geom.LineString).to.be.ok();
         expect(geom.dimension).to.eql(3);
         geom = obj.features[1].getGeometry();
         expect(geom instanceof ol.geom.LineString).to.be.ok();
+        done();
       });
     });
-    it('Point read correctly', function() {
+    it('Point read / written correctly', function(done) {
       var url = 'spec/ol/parser/kml/point.kml';
       afterLoadXml(url, function(xml) {
         var obj = parser.read(xml);
         var output = parser.write(obj);
-        var expected = '<kml xmlns="http://www.opengis.net/kml/2.2">' +
-            '<Document><Placemark><name>Simple placemark</name><description>' +
-            'Attached to the ground. Intelligently places itself \n' +
-            '       at the height of the underlying terrain.</description>' +
-            '<Point><coordinates>-122.0822035425683,37.42228990140251,0' +
-            '</coordinates></Point></Placemark></Document></kml>';
-        expect(output).to.eql(expected);
+        expect(goog.dom.xml.loadXml(output)).to.xmleql(xml);
         expect(obj.features.length).to.eql(1);
         var geom = obj.features[0].getGeometry();
         expect(geom instanceof ol.geom.Point).to.be.ok();
         expect(geom.dimension).to.eql(3);
+        done();
       });
     });
     it('NetworkLink read correctly', function(done) {
@@ -76,8 +52,8 @@ describe('ol.parser.kml', function() {
       afterLoadXml(url, function(xml) {
         var p = new ol.parser.KML({maxDepth: 1});
         // we need to supply a callback to get visited NetworkLinks
-        var obj = p.read(xml, function(features) {
-          expect(features.length).to.eql(3);
+        p.read(xml, function(obj) {
+          expect(obj.features.length).to.eql(3);
           done();
         });
       });
@@ -87,8 +63,8 @@ describe('ol.parser.kml', function() {
       afterLoadXml(url, function(xml) {
         var p = new ol.parser.KML({maxDepth: 2});
         // we need to supply a callback to get visited NetworkLinks
-        var obj = p.read(xml, function(features) {
-          expect(features.length).to.eql(2);
+        p.read(xml, function(obj) {
+          expect(obj.features.length).to.eql(2);
           done();
         });
       });
@@ -98,14 +74,14 @@ describe('ol.parser.kml', function() {
       afterLoadXml(url, function(xml) {
         var p = new ol.parser.KML({maxDepth: 1});
         // we need to supply a callback to get visited NetworkLinks
-        var obj = p.read(xml, function(features) {
+        p.read(xml, function(obj) {
           // since maxDepth is 1, we will not get to the second feature
-          expect(features.length).to.eql(1);
+          expect(obj.features.length).to.eql(1);
           done();
         });
       });
     });
-    it('Extended data read correctly', function() {
+    it('Extended data read correctly', function(done) {
       var url = 'spec/ol/parser/kml/extended_data.kml';
       afterLoadXml(url, function(xml) {
         var obj = parser.read(xml);
@@ -114,9 +90,11 @@ describe('ol.parser.kml', function() {
             'itself \n       at the height of the underlying terrain.';
         expect(obj.features[0].get('description')).to.eql(description);
         expect(obj.features[0].get('foo')).to.eql('bar');
+        expect(obj.features[0].getFeatureId()).to.eql('foobarbaz');
+        done();
       });
     });
-    it('Extended data read correctly [2]', function() {
+    it('Extended data read correctly [2]', function(done) {
       var url = 'spec/ol/parser/kml/extended_data2.kml';
       afterLoadXml(url, function(xml) {
         var obj = parser.read(xml);
@@ -124,28 +102,21 @@ describe('ol.parser.kml', function() {
         expect(feature.get('TrailHeadName')).to.eql('Pi in the sky');
         expect(feature.get('TrailLength')).to.eql('3.14159');
         expect(feature.get('ElevationGain')).to.eql('10');
+        done();
       });
     });
-    it('Multi geometry read correctly', function() {
+    it('Multi geometry read / written correctly', function(done) {
       var url = 'spec/ol/parser/kml/multigeometry.kml';
       afterLoadXml(url, function(xml) {
         var obj = parser.read(xml);
         var geom = obj.features[0].getGeometry();
-        var expected = '<kml xmlns="http://www.opengis.net/kml/2.2">' +
-            '<Document><name>Polygon.kml</name><open>0</open><Placemark>' +
-            '<name>SF Marina Harbor Master</name><MultiGeometry><LineString>' +
-            '<coordinates>-122.4425587930444,37.80666418607323,0 ' +
-            '-122.4428379594768,37.80663578323093,0</coordinates>' +
-            '</LineString><LineString><coordinates>-122.4425509770566,' +
-            '37.80662588061205,0 -122.4428340530617,37.8065999493009,0' +
-            '</coordinates></LineString></MultiGeometry></Placemark>' +
-            '</Document></kml>';
         var output = parser.write(obj);
-        expect(output).to.eql(expected);
+        expect(goog.dom.xml.loadXml(output)).to.xmleql(xml);
         expect(geom instanceof ol.geom.MultiLineString).to.be.ok();
+        done();
       });
     });
-    it('Discrete multi geometry read correctly', function() {
+    it('Discrete multi geometry read correctly', function(done) {
       var url = 'spec/ol/parser/kml/multigeometry_discrete.kml';
       afterLoadXml(url, function(xml) {
         var obj = parser.read(xml);
@@ -154,9 +125,10 @@ describe('ol.parser.kml', function() {
         expect(geom.components.length).to.eql(2);
         expect(geom.components[0] instanceof ol.geom.LineString).to.be.ok();
         expect(geom.components[1] instanceof ol.geom.Point).to.be.ok();
+        done();
       });
     });
-    it('Test extract tracks', function() {
+    it('Test extract tracks', function(done) {
       var url = 'spec/ol/parser/kml/macnoise.kml';
       afterLoadXml(url, function(xml) {
         var p = new ol.parser.KML({extractStyles: true,
@@ -180,6 +152,7 @@ describe('ol.parser.kml', function() {
         expect(geom.get(0)).to.eql(-93.0753620391713);
         expect(geom.get(1)).to.eql(44.9879724110872);
         expect(geom.get(2)).to.eql(1006);
+        done();
       });
     });
     it('Test CDATA attributes', function() {
@@ -192,97 +165,140 @@ describe('ol.parser.kml', function() {
       expect(obj.features[0].get('description')).to.eql('Full of text.');
       expect(obj.features[0].get('name')).to.eql('Pezinok');
     });
-    it('Test line style', function() {
-      var test_style = '<kml xmlns="http://earth.google.com/kml/2.0"> ' +
-          '<Placemark>    <Style> <LineStyle> <color>870000ff</color> ' +
+    it('Test line style (read / write)', function() {
+      var test_style = '<kml xmlns="http://www.opengis.net/kml/2.2" ' +
+          'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
+          'xsi:schemaLocation="http://www.opengis.net/kml/2.2 ' +
+          'http://schemas.opengis.net/kml/2.2.0/ogckml22.xsd"> ' +
+          '<Document><Placemark><Style><LineStyle> <color>870000ff</color> ' +
           '<width>10</width> </LineStyle> </Style>  <LineString> ' +
           '<coordinates> -112,36 -113,37 </coordinates> </LineString>' +
-          '</Placemark></kml>';
+          '</Placemark></Document></kml>';
       var p = new ol.parser.KML({extractStyles: true});
       var obj = p.read(test_style);
       var output = p.write(obj);
-      var expected = '<kml xmlns="http://www.opengis.net/kml/2.2">' +
-          '<Document><Placemark><Style><LineStyle><color>870000ff</color>' +
-          '<width>10</width></LineStyle></Style><LineString><coordinates>' +
-          '-112,36 -113,37</coordinates></LineString></Placemark>' +
-          '</Document></kml>';
-      expect(output).to.eql(expected);
+      expect(goog.dom.xml.loadXml(test_style)).to.xmleql(
+          goog.dom.xml.loadXml(output));
       var symbolizer = obj.features[0].getSymbolizerLiterals()[0];
       expect(symbolizer instanceof ol.style.LineLiteral).to.be.ok();
       expect(symbolizer.strokeColor).to.eql('#ff0000');
-      expect(symbolizer.opacity).to.eql(0.5294117647058824);
+      expect(symbolizer.strokeOpacity).to.eql(0.5294117647058824);
       expect(symbolizer.strokeWidth).to.eql(10);
     });
-    it('Test style fill', function() {
-      var test_style_fill = '<kml xmlns="http://earth.google.com/kml/2.0"> ' +
-          '<Placemark>    <Style> <PolyStyle> <fill>1</fill> ' +
-          '<color>870000ff</color> <width>10</width> </PolyStyle> </Style>' +
+    it('reads PolyStyle fill', function() {
+      var kml = '<kml xmlns="http://www.opengis.net/kml/2.2">' +
+          '<Document><Placemark>    <Style> <PolyStyle> <fill>1</fill> ' +
+          '<color>870000ff</color></PolyStyle> </Style>' +
           '<Polygon><outerBoundaryIs><LinearRing><coordinates>' +
           '5.001370157823406,49.26855713824488 8.214706453896161,' +
           '49.630662409673505 8.397385910100951,48.45172350357396 ' +
           '5.001370157823406,49.26855713824488</coordinates></LinearRing>' +
           '</outerBoundaryIs></Polygon></Placemark><Placemark>    <Style> ' +
-          '<PolyStyle><fill>0</fill><color>870000ff</color><width>10</width> ' +
+          '<PolyStyle><fill>0</fill><color>870000ff</color>' +
           '</PolyStyle> </Style>' +
           '<Polygon><outerBoundaryIs><LinearRing><coordinates>' +
           '5.001370157823406,49.26855713824488 8.214706453896161,' +
           '49.630662409673505 8.397385910100951,48.45172350357396 ' +
           '5.001370157823406,49.26855713824488</coordinates></LinearRing>' +
-          '</outerBoundaryIs></Polygon></Placemark></kml>';
+          '</outerBoundaryIs></Polygon></Placemark></Document></kml>';
       var p = new ol.parser.KML({extractStyles: true});
-      var obj = p.read(test_style_fill);
-      var output = p.write(obj);
-      var expected = '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>' +
-          '<Placemark><Style><PolyStyle><fill>1</fill><color>870000ff' +
-          '</color><width>10</width></PolyStyle></Style><Polygon>' +
-          '<outerBoundaryIs><LinearRing><coordinates>5.001370157823406,' +
-          '49.26855713824488 8.214706453896161,49.630662409673505 ' +
-          '8.397385910100951,48.45172350357396 5.001370157823406,' +
-          '49.26855713824488</coordinates></LinearRing></outerBoundaryIs>' +
-          '</Polygon></Placemark><Placemark><Style><PolyStyle><fill>0</fill>' +
-          '<color>00000ff</color><width>10</width></PolyStyle></Style>' +
+      var obj = p.read(kml);
+      var symbolizer1 = obj.features[0].getSymbolizerLiterals()[0];
+      var symbolizer2 = obj.features[1].getSymbolizerLiterals()[0];
+      expect(symbolizer1.strokeColor).to.be('#ff0000');
+      expect(symbolizer2.fillOpacity).to.be(undefined);
+    });
+    it('writes PolyStyle fill and outline', function() {
+      var kml = '<kml xmlns="http://www.opengis.net/kml/2.2" ' +
+          'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
+          'xsi:schemaLocation="http://www.opengis.net/kml/2.2 ' +
+          'http://schemas.opengis.net/kml/2.2.0/ogckml22.xsd"> ' +
+          '<Document><Placemark><Style><PolyStyle>' +
+          '<fill>1</fill><outline>0</outline>' +
+          '<color>870000ff</color></PolyStyle> </Style>' +
           '<Polygon><outerBoundaryIs><LinearRing><coordinates>' +
           '5.001370157823406,49.26855713824488 8.214706453896161,' +
           '49.630662409673505 8.397385910100951,48.45172350357396 ' +
           '5.001370157823406,49.26855713824488</coordinates></LinearRing>' +
           '</outerBoundaryIs></Polygon></Placemark></Document></kml>';
-      expect(output).to.eql(expected);
-      var symbolizer1 = obj.features[0].getSymbolizerLiterals()[0];
-      var symbolizer2 = obj.features[1].getSymbolizerLiterals()[0];
-      expect(symbolizer1.fillColor).to.eql('#ff0000');
-      expect(symbolizer2.opacity).to.eql(0);
+      var p = new ol.parser.KML({extractStyles: true});
+      var output = p.write(p.read(kml));
+      expect(goog.dom.xml.loadXml(kml)).to.xmleql(
+          goog.dom.xml.loadXml(output));
     });
-    it('Test iconStyle', function() {
+    it('Test iconStyle (read / write)', function(done) {
       var url = 'spec/ol/parser/kml/iconstyle.kml';
       afterLoadXml(url, function(xml) {
         var p = new ol.parser.KML({extractStyles: true});
         var obj = p.read(xml);
         var output = p.write(obj);
-        var expected = '<kml xmlns="http://www.opengis.net/kml/2.2">' +
-            '<Document><Style id="pushpin"><IconStyle id="mystyle">' +
-            '<Icon><href>http://maps.google.com/mapfiles/kml/pushpin/' +
-            'ylw-pushpin.png</href></Icon></IconStyle></Style>' +
-            '<Placemark><name>Pin on a mountaintop</name><styleUrl>' +
-            '#pushpin</styleUrl><Point><coordinates>170.1435558771009,' +
-            '-43.60505741890396,0</coordinates></Point></Placemark>' +
-            '</Document></kml>';
-        expect(output).to.eql(expected);
+        expect(goog.dom.xml.loadXml(output)).to.xmleql(xml);
         var symbolizer = obj.features[0].getSymbolizerLiterals()[0];
         var url = 'http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png';
         expect(symbolizer.url).to.eql(url);
         expect(symbolizer.width).to.eql(32);
         expect(symbolizer.height).to.eql(32);
+        done();
       });
     });
   });
+
+  describe('parsing states.kml', function() {
+
+    var features;
+    before(function(done) {
+      afterLoadXml('spec/ol/parser/kml/states.kml', function(xml) {
+        var parser = new ol.parser.KML();
+        var obj;
+        try {
+          obj = parser.read(xml);
+        } catch (err) {
+          return done(err);
+        }
+        if (!obj.features) {
+          return done(new Error('Failed to parse features from doc'));
+        }
+        features = obj.features;
+        done();
+      });
+    });
+
+    it('creates 50 features', function() {
+      expect(features).to.have.length(50);
+    });
+
+    it('creates features with heterogenous geometry collections', function() {
+      // TODO: decide if we should instead create features with multiple geoms
+      var feature = features[0];
+      expect(feature).to.be.a(ol.Feature);
+      var geometry = feature.getGeometry();
+      expect(geometry).to.be.a(ol.geom.GeometryCollection);
+    });
+
+    it('parses Point and MultiPolygon for Alaska', function() {
+      var alaska = goog.array.find(features, function(feature) {
+        return feature.get('name') === 'Alaska';
+      });
+      expect(alaska).to.be.a(ol.Feature);
+      var geometry = alaska.getGeometry();
+      expect(geometry).to.be.a(ol.geom.GeometryCollection);
+      expect(geometry.components).to.have.length(2);
+      expect(geometry.components[0]).to.be.a(ol.geom.Point);
+      expect(geometry.components[1]).to.be.a(ol.geom.MultiPolygon);
+    });
+
+  });
+
 });
 
-goog.require('goog.net.XhrIo');
+goog.require('goog.array');
+goog.require('goog.dom.xml');
 
 goog.require('ol.Feature');
 goog.require('ol.geom.GeometryCollection');
 goog.require('ol.geom.LineString');
 goog.require('ol.geom.MultiLineString');
+goog.require('ol.geom.MultiPolygon');
 goog.require('ol.geom.Point');
 goog.require('ol.geom.Polygon');
 goog.require('ol.parser.KML');

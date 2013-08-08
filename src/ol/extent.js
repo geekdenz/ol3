@@ -57,8 +57,7 @@ ol.extent.boundingExtentXYs_ = function(xs, ys, opt_extent) {
 
 
 /**
- * Checks if the passed coordinate is contained or on the edge
- * of the extent.
+ * Checks if the passed coordinate is contained or on the edge of the extent.
  *
  * @param {ol.Extent} extent Extent.
  * @param {ol.Coordinate} coordinate Coordinate.
@@ -71,8 +70,7 @@ ol.extent.containsCoordinate = function(extent, coordinate) {
 
 
 /**
- * Checks if the passed extent is contained or on the edge of the
- * extent.
+ * Checks if `extent2` is contained by or on the edge of `extent1`.
  *
  * @param {ol.Extent} extent1 Extent 1.
  * @param {ol.Extent} extent2 Extent 2.
@@ -110,6 +108,18 @@ ol.extent.createOrUpdate = function(minX, maxX, minY, maxY, extent) {
   } else {
     return [minX, maxX, minY, maxY];
   }
+};
+
+
+/**
+ * Empties extent in place.
+ * @param {ol.Extent} extent Extent.
+ * @return {ol.Extent} Extent.
+ */
+ol.extent.empty = function(extent) {
+  extent[0] = extent[2] = Infinity;
+  extent[1] = extent[3] = -Infinity;
+  return extent;
 };
 
 
@@ -201,11 +211,13 @@ ol.extent.getCenter = function(extent) {
  */
 ol.extent.getForView2DAndSize =
     function(center, resolution, rotation, size, opt_extent) {
-  var dx = resolution * size.width / 2;
-  var dy = resolution * size.height / 2;
+  var dx = resolution * size[0] / 2;
+  var dy = resolution * size[1] / 2;
   var cosRotation = Math.cos(rotation);
   var sinRotation = Math.sin(rotation);
+  /** @type {Array.<number>} */
   var xs = [-dx, -dx, dx, dx];
+  /** @type {Array.<number>} */
   var ys = [-dy, dy, -dy, dy];
   var i, x, y;
   for (i = 0; i < 4; ++i) {
@@ -232,7 +244,7 @@ ol.extent.getHeight = function(extent) {
  * @return {ol.Size} Size.
  */
 ol.extent.getSize = function(extent) {
-  return new ol.Size(extent[1] - extent[0], extent[3] - extent[2]);
+  return [extent[1] - extent[0], extent[3] - extent[2]];
 };
 
 

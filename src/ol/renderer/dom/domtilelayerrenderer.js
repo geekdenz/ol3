@@ -76,7 +76,7 @@ ol.renderer.dom.TileLayer.prototype.renderFrame =
 
   if (!layerState.visible) {
     if (this.renderedVisible_) {
-      goog.style.showElement(this.target, false);
+      goog.style.setElementShown(this.target, false);
       this.renderedVisible_ = false;
     }
     return;
@@ -115,7 +115,6 @@ ol.renderer.dom.TileLayer.prototype.renderFrame =
   var findLoadedTiles = goog.bind(tileSource.findLoadedTiles, tileSource,
       tilesToDrawByZ, getTileIfLoaded);
 
-  var allTilesLoaded = true;
   var tmpExtent = ol.extent.createEmpty();
   var tmpTileRange = new ol.TileRange(0, 0, 0, 0);
   var childTileRange, fullyLoaded, tile, tileState, x, y;
@@ -132,7 +131,6 @@ ol.renderer.dom.TileLayer.prototype.renderFrame =
         continue;
       }
 
-      allTilesLoaded = false;
       fullyLoaded = tileGrid.forEachTileCoordParentTileRange(
           tile.tileCoord, findLoadedTiles, null, tmpTileRange, tmpExtent);
       if (!fullyLoaded) {
@@ -193,7 +191,7 @@ ol.renderer.dom.TileLayer.prototype.renderFrame =
     origin = tileLayerZ.getOrigin();
     goog.vec.Mat4.makeIdentity(transform);
     goog.vec.Mat4.translate(
-        transform, frameState.size.width / 2, frameState.size.height / 2, 0);
+        transform, frameState.size[0] / 2, frameState.size[1] / 2, 0);
     goog.vec.Mat4.rotateZ(transform, view2DState.rotation);
     goog.vec.Mat4.scale(transform, resolution / view2DState.resolution,
         resolution / view2DState.resolution, 1);
@@ -228,7 +226,7 @@ ol.renderer.dom.TileLayer.prototype.renderFrame =
   }
 
   if (layerState.visible && !this.renderedVisible_) {
-    goog.style.showElement(this.target, true);
+    goog.style.setElementShown(this.target, true);
     this.renderedVisible_ = true;
   }
 
@@ -321,9 +319,9 @@ ol.renderer.dom.TileLayerZ_.prototype.addTile = function(tile) {
   style.maxWidth = 'none';
   style.position = 'absolute';
   style.left =
-      ((tileCoord.x - this.tileCoordOrigin_.x) * tileSize.width) + 'px';
+      ((tileCoord.x - this.tileCoordOrigin_.x) * tileSize[0]) + 'px';
   style.top =
-      ((this.tileCoordOrigin_.y - tileCoord.y) * tileSize.height) + 'px';
+      ((this.tileCoordOrigin_.y - tileCoord.y) * tileSize[1]) + 'px';
   if (goog.isNull(this.documentFragment_)) {
     this.documentFragment_ = document.createDocumentFragment();
   }

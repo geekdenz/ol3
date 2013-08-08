@@ -1,21 +1,27 @@
 .ol-attribution {
   position: absolute;
-  font-size: 10px;
   text-align: right;
   color: #eeeeee;
   bottom: 0;
   right: 0;
   background: rgba(0,60,136,0.3);
   font-family: 'Lucida Grande',Verdana,Geneva,Lucida,Arial,Helvetica,sans-serif;
-  padding: 2px 4px;
+  padding: 6px;
 }
 .ol-attribution a {
   color: white;
   text-decoration: none;
 }
+.ol-attribution ul {
+  margin: 0;
+  padding: 0;
+  font-size: 10px;
+  line-height: 12px;
+}
 .ol-attribution li {
   display: inline;
   list-style: none;
+  line-height: inherit;
 }
 .ol-attribution li:not(:last-child):after {
   content: "\2003";
@@ -81,6 +87,13 @@ a.ol-full-screen-true:after {
   display: inline;
   list-style: none;
 }
+
+.ol-mouse-position {
+  top: 8px;
+  right: 8px;
+  position: absolute;  
+}
+
 .ol-scale-line {
   background: rgba(0,60,136,0.3);
   border-radius: 4px;
@@ -188,4 +201,44 @@ a.ol-full-screen-true:after {
   overflow: hidden;
   height: 20px;
   width: 24px;
+}
+.ol-zoom-extent {
+  position: absolute;
+  background: rgba(255,255,255,0.4);
+  border-radius: 4px;
+  left: 8px;
+  padding: 2px;
+  top: 65px;
+}
+@media print {
+  .ol-zoom-extent {
+    display: none;
+  }
+}
+.ol-zoom-extent a {
+  display: block;
+  margin: 1px;
+  padding: 0;
+  color: white;
+  font-size: 16px;
+  font-family: 'Lucida Grande',Verdana,Geneva,Lucida,Arial,Helvetica,sans-serif;
+  font-weight: bold;
+  text-decoration: none;
+  text-align: center;
+  height: 22px;
+  width: 22px;
+  background-color: rgba(0, 60, 136, 0.5);
+  border-radius: 2px;
+}
+.ol-touch .ol-zoom-extent a {
+  font-size: 20px;
+  height: 30px;
+  width: 30px;
+  line-height: 26px;
+}
+.ol-zoom-extent a:hover {
+  background-color: rgba(0, 60, 136, 0.7);
+}
+.ol-zoom-extent a:after {
+    content: "E";
 }

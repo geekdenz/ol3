@@ -37,6 +37,16 @@ ol.OverlayPositioning = {
 
 
 /**
+ * An element to show on top of the map, such as for a popup.
+ *
+ * Example:
+ *
+ *     var popup = new ol.Overlay({
+ *       map: map,
+ *       element: document.getElementById('popup')
+ *     });
+ *     popup.setPosition(coordinate);
+ *
  * @constructor
  * @extends {ol.Object}
  * @param {ol.OverlayOptions} options Overlay options.
@@ -68,21 +78,27 @@ ol.Overlay = function(options) {
     visible: true
   };
 
+  /**
+   * @private
+   * @type {goog.events.Key}
+   */
+  this.mapPostrenderListenerKey_ = null;
+
   goog.events.listen(
-      this, ol.Object.getChangedEventType(ol.OverlayProperty.ELEMENT),
+      this, ol.Object.getChangeEventType(ol.OverlayProperty.ELEMENT),
       this.handleElementChanged, false, this);
 
   goog.events.listen(
-      this, ol.Object.getChangedEventType(ol.OverlayProperty.MAP),
+      this, ol.Object.getChangeEventType(ol.OverlayProperty.MAP),
       this.handleMapChanged, false, this);
 
   goog.events.listen(
-      this, ol.Object.getChangedEventType(ol.OverlayProperty.POSITION),
+      this, ol.Object.getChangeEventType(ol.OverlayProperty.POSITION),
       this.handlePositionChanged, false, this);
 
   goog.events.listen(
       this,
-      ol.Object.getChangedEventType(ol.OverlayProperty.POSITIONING),
+      ol.Object.getChangeEventType(ol.OverlayProperty.POSITIONING),
       this.handlePositioningChanged, false, this);
 
   if (goog.isDef(options.element)) {
@@ -103,6 +119,7 @@ goog.inherits(ol.Overlay, ol.Object);
 
 
 /**
+ * Get the DOM element of this overlay.
  * @return {Element|undefined} Element.
  */
 ol.Overlay.prototype.getElement = function() {
@@ -116,6 +133,7 @@ goog.exportProperty(
 
 
 /**
+ * Get the map associated with this overlay.
  * @return {ol.Map|undefined} Map.
  */
 ol.Overlay.prototype.getMap = function() {
@@ -129,6 +147,7 @@ goog.exportProperty(
 
 
 /**
+ * Get the current position of this overlay.
  * @return {ol.Coordinate|undefined} Position.
  */
 ol.Overlay.prototype.getPosition = function() {
@@ -142,6 +161,7 @@ goog.exportProperty(
 
 
 /**
+ * Get the current positioning of this overlay.
  * @return {ol.OverlayPositioning|undefined} Positioning.
  */
 ol.Overlay.prototype.getPositioning = function() {
@@ -211,6 +231,7 @@ ol.Overlay.prototype.handlePositioningChanged = function() {
 
 
 /**
+ * Set the DOM element to be associated with this overlay.
  * @param {Element|undefined} element Element.
  */
 ol.Overlay.prototype.setElement = function(element) {
@@ -223,6 +244,7 @@ goog.exportProperty(
 
 
 /**
+ * Set the map to be associated with this overlay.
  * @param {ol.Map|undefined} map Map.
  */
 ol.Overlay.prototype.setMap = function(map) {
@@ -235,6 +257,7 @@ goog.exportProperty(
 
 
 /**
+ * Set the position for this overlay.
  * @param {ol.Coordinate|undefined} position Position.
  */
 ol.Overlay.prototype.setPosition = function(position) {
@@ -263,7 +286,7 @@ ol.Overlay.prototype.updatePixelPosition_ = function() {
   var position = this.getPosition();
   if (!goog.isDef(map) || !map.isDef() || !goog.isDef(position)) {
     if (this.rendered_.visible) {
-      goog.style.showElement(this.element_, false);
+      goog.style.setElementShown(this.element_, false);
       this.rendered_.visible = false;
     }
     return;
@@ -279,7 +302,7 @@ ol.Overlay.prototype.updatePixelPosition_ = function() {
     if (this.rendered_.left_ !== '') {
       this.rendered_.left_ = style.left = '';
     }
-    var right = Math.round(mapSize.width - pixel.x) + 'px';
+    var right = Math.round(mapSize[0] - pixel[0]) + 'px';
     if (this.rendered_.right_ != right) {
       this.rendered_.right_ = style.right = right;
     }
@@ -287,7 +310,7 @@ ol.Overlay.prototype.updatePixelPosition_ = function() {
     if (this.rendered_.right_ !== '') {
       this.rendered_.right_ = style.right = '';
     }
-    var left = Math.round(pixel.x) + 'px';
+    var left = Math.round(pixel[0]) + 'px';
     if (this.rendered_.left_ != left) {
       this.rendered_.left_ = style.left = left;
     }
@@ -297,7 +320,7 @@ ol.Overlay.prototype.updatePixelPosition_ = function() {
     if (this.rendered_.bottom_ !== '') {
       this.rendered_.bottom_ = style.bottom = '';
     }
-    var top = Math.round(pixel.y) + 'px';
+    var top = Math.round(pixel[1]) + 'px';
     if (this.rendered_.top_ != top) {
       this.rendered_.top_ = style.top = top;
     }
@@ -305,14 +328,14 @@ ol.Overlay.prototype.updatePixelPosition_ = function() {
     if (this.rendered_.top_ !== '') {
       this.rendered_.top_ = style.top = '';
     }
-    var bottom = Math.round(mapSize.height - pixel.y) + 'px';
+    var bottom = Math.round(mapSize[1] - pixel[1]) + 'px';
     if (this.rendered_.bottom_ != bottom) {
       this.rendered_.bottom_ = style.bottom = bottom;
     }
   }
 
   if (!this.rendered_.visible) {
-    goog.style.showElement(this.element_, true);
+    goog.style.setElementShown(this.element_, true);
     this.rendered_.visible = true;
   }
 

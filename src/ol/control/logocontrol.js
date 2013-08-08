@@ -11,6 +11,10 @@ goog.require('ol.css');
 
 
 /**
+ * Shows a logo for all the layer sources in the map that have a logo
+ * associated with them, such as Bing. This control is part of a default map.
+ * By default it will show in the bottom-left portion of the map, but it can
+ * be styled by using a css selector for .ol-logo.
  * @constructor
  * @extends {ol.control.Control}
  * @param {ol.control.LogoOptions=} opt_options Logo options.
@@ -25,8 +29,10 @@ ol.control.Logo = function(opt_options) {
    */
   this.ulElement_ = goog.dom.createElement(goog.dom.TagName.UL);
 
+  var className = goog.isDef(options.className) ? options.className : 'ol-logo';
+
   var element = goog.dom.createDom(goog.dom.TagName.DIV, {
-    'class': 'ol-logo ' + ol.css.CLASS_UNSELECTABLE
+    'class': className + ' ' + ol.css.CLASS_UNSELECTABLE
   }, this.ulElement_);
 
   goog.base(this, {
@@ -67,7 +73,7 @@ ol.control.Logo.prototype.updateElement_ = function(frameState) {
 
   if (goog.isNull(frameState)) {
     if (this.renderedVisible_) {
-      goog.style.showElement(this.element, false);
+      goog.style.setElementShown(this.element, false);
       this.renderedVisible_ = false;
     }
     return;
@@ -98,7 +104,7 @@ ol.control.Logo.prototype.updateElement_ = function(frameState) {
 
   var renderVisible = !goog.object.isEmpty(logos);
   if (this.renderedVisible_ != renderVisible) {
-    goog.style.showElement(this.element, renderVisible);
+    goog.style.setElementShown(this.element, renderVisible);
     this.renderedVisible_ = renderVisible;
   }
 

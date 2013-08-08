@@ -5,7 +5,7 @@ import gzip
 import json
 import os
 import os.path
-import re
+import regex as re
 import shutil
 import sys
 
@@ -72,7 +72,10 @@ if sys.platform == 'win32':
 else:
     variables.GIT = 'git'
     variables.GJSLINT = 'gjslint'
-    variables.JAVA = 'java'
+    if sys.platform == 'darwin':
+        variables.JAVA = '/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
+    else:
+        variables.JAVA = 'java'
     variables.JAR = 'jar'
     variables.JSDOC = 'jsdoc'
     variables.NODE = 'node'
@@ -142,8 +145,8 @@ SRC = [path
        if path.endswith('.js')
        if path not in SHADER_SRC]
 
-PLOVR_JAR = 'build/plovr-eba786b34df9.jar'
-PLOVR_JAR_MD5 = '20eac8ccc4578676511cf7ccbfc65100'
+PLOVR_JAR = 'build/plovr-81ed862.jar'
+PLOVR_JAR_MD5 = '1c752daaf11ad6220b298e7d2ee2b87d'
 
 PROJ4JS = 'build/proj4js/lib/proj4js-combined.js'
 PROJ4JS_ZIP = 'build/proj4js-1.1.0.zip'
@@ -309,6 +312,8 @@ def examples_star_json(name, match):
                 '../externs/bingmaps.js',
                 '../externs/bootstrap.js',
                 '../externs/geojson.js',
+                '../externs/topojson.js',
+                '../externs/oli.js',
                 '../externs/proj4js.js',
                 '../externs/tilejson.js',
             ],
@@ -332,8 +337,7 @@ def examples_star_combined_js(name, match):
     return Target(name, action=action, dependencies=dependencies)
 
 
-@target('serve', PLOVR_JAR, INTERNAL_SRC, 'build/test/requireall.js',
-        'examples')
+@target('serve', PLOVR_JAR, 'test-deps', 'examples')
 def serve(t):
     t.run('%(JAVA)s', '-jar', PLOVR_JAR, 'serve', 'buildcfg/ol.json',
           'buildcfg/ol-all.json', EXAMPLES_JSON, 'buildcfg/test.json')
@@ -345,19 +349,35 @@ def serve_precommit(t):
           'buildcfg/ol-all.json', 'buildcfg/test.json')
 
 
-virtual('lint', 'build/lint-timestamp', 'build/check-requires-timestamp',
-        'build/check-whitespace-timestamp')
+virtual('lint', 'build/lint-timestamp', 'build/lint-generated-timestamp',
+        'build/check-requires-timestamp', 'build/check-whitespace-timestamp')
 
 
-@target('build/lint-timestamp', SRC, INTERNAL_SRC, EXTERNAL_SRC, EXAMPLES_SRC,
-        SPEC, precious=True)
+@target('build/lint-timestamp', SRC, EXAMPLES_SRC, SPEC, precious=True)
 def build_lint_src_timestamp(t):
+    t.run('%(GJSLINT)s',
+          '--jslint_error=all',
+          '--strict',
+          t.newer(t.dependencies))
+    t.touch()
+
+
+@target('build/lint-generated-timestamp', INTERNAL_SRC, EXTERNAL_SRC,
+        precious=True)
+def build_lint_generated_timestamp(t):
     limited_doc_files = [
         path
         for path in ifind('externs', 'build/src/external/externs')
         if path.endswith('.js')]
-    t.run('%(GJSLINT)s', '--strict', '--limited_doc_files=%s' %
-          (','.join(limited_doc_files),), t.newer(t.dependencies))
+    t.run('%(GJSLINT)s',
+          '--jslint_error=all',
+          # ignore error for max line length (for these auto-generated sources)
+          '--disable=110',
+          # for a complete list of error codes to allow, see
+          # http://closure-linter.googlecode.com/svn/trunk/closure_linter/errors.py
+          '--limited_doc_files=%s' % (','.join(limited_doc_files),),
+          '--strict',
+          t.newer(t.dependencies))
     t.touch()
 
 
@@ -477,6 +497,7 @@ def build_check_requires_timestamp(t):
         provides = set()
         requires = set()
         uses = set()
+        uses_linenos = {}
         for lineno, line in _strip_comments(open(filename)):
             m = re.match(r'goog.provide\(\'(.*)\'\);', line)
             if m:
@@ -491,6 +512,7 @@ def build_check_requires_timestamp(t):
                     m = provide_re.search(line)
                     if m:
                         uses.add(m.group())
+                        uses_linenos[m.group()] = lineno
                         line = line[:m.start()] + line[m.end():]
                         break
                 else:
@@ -504,9 +526,10 @@ def build_check_requires_timestamp(t):
             uses.discard('ol.renderer.%s.Map' % (m.group(1),))
         missing_requires = uses - requires - provides
         if missing_requires:
-            t.info('%s: missing goog.requires: %s', filename, ', '.join(
-                sorted(missing_requires)))
-            missing_count += len(missing_requires)
+            for missing_require in sorted(missing_requires):
+                t.info("%s:%d missing goog.require('%s')" %
+                       (filename, uses_linenos[missing_require], missing_require))
+                missing_count += 1
     if unused_count or missing_count:
         t.error('%d unused goog.requires, %d missing goog.requires' %
                 (unused_count, missing_count))
@@ -554,20 +577,6 @@ def plovr_jar(t):
     t.info('downloaded %r', t.name)
 
 
-@target('gh-pages', 'host-examples', 'doc', phony=True)
-def gh_pages(t):
-    with t.tempdir() as tempdir:
-        t.run('%(GIT)s', 'clone', '--branch', 'gh-pages',
-              'git@github.com:openlayers/ol3.git', tempdir)
-        with t.chdir(tempdir):
-            t.rm_rf('%(BRANCH)s')
-        t.cp_r('build/gh-pages/%(BRANCH)s', tempdir + '/%(BRANCH)s')
-        with t.chdir(tempdir):
-            t.run('%(GIT)s', 'add', '--all', '%(BRANCH)s')
-            t.run('%(GIT)s', 'commit', '--message', 'Updated')
-            t.run('%(GIT)s', 'push', 'origin', 'gh-pages')
-
-
 virtual('doc', 'build/jsdoc-%(BRANCH)s-timestamp' % vars(variables))
 
 
@@ -576,7 +585,7 @@ virtual('doc', 'build/jsdoc-%(BRANCH)s-timestamp' % vars(variables))
         SRC, SHADER_SRC, ifind('doc/template'))
 def jsdoc_BRANCH_timestamp(t):
     t.run('%(JSDOC)s', '-c', 'doc/conf.json', 'src', 'doc/index.md',
-          '-d', 'build/gh-pages/%(BRANCH)s/apidoc')
+          '-d', 'build/hosted/%(BRANCH)s/apidoc')
     t.touch()
 
 
@@ -614,15 +623,15 @@ def split_example_file(example, dst_dir):
 
 @target('host-resources', phony=True)
 def host_resources(t):
-    resources_dir = 'build/gh-pages/%(BRANCH)s/resources'
+    resources_dir = 'build/hosted/%(BRANCH)s/resources'
     t.rm_rf(resources_dir)
     t.cp_r('resources', resources_dir)
 
 
 @target('host-examples', 'build', 'host-resources', 'examples', phony=True)
 def host_examples(t):
-    examples_dir = 'build/gh-pages/%(BRANCH)s/examples'
-    build_dir = 'build/gh-pages/%(BRANCH)s/build'
+    examples_dir = 'build/hosted/%(BRANCH)s/examples'
+    build_dir = 'build/hosted/%(BRANCH)s/build'
     t.rm_rf(examples_dir)
     t.makedirs(examples_dir)
     t.rm_rf(build_dir)
@@ -637,30 +646,30 @@ def host_examples(t):
     t.cp('examples/index.html', 'examples/example-list.js',
          'examples/example-list.xml', 'examples/Jugl.js',
          'examples/jquery.min.js', examples_dir)
-    t.rm_rf('build/gh-pages/%(BRANCH)s/closure-library')
-    t.makedirs('build/gh-pages/%(BRANCH)s/closure-library')
-    with t.chdir('build/gh-pages/%(BRANCH)s/closure-library'):
+    t.rm_rf('build/hosted/%(BRANCH)s/closure-library')
+    t.makedirs('build/hosted/%(BRANCH)s/closure-library')
+    with t.chdir('build/hosted/%(BRANCH)s/closure-library'):
         t.run('%(JAR)s', 'xf', '../../../../' + PLOVR_JAR, 'closure')
         t.run('%(JAR)s', 'xf', '../../../../' + PLOVR_JAR, 'third_party')
-    t.rm_rf('build/gh-pages/%(BRANCH)s/ol')
-    t.makedirs('build/gh-pages/%(BRANCH)s/ol')
-    t.cp_r('src/ol', 'build/gh-pages/%(BRANCH)s/ol/ol')
+    t.rm_rf('build/hosted/%(BRANCH)s/ol')
+    t.makedirs('build/hosted/%(BRANCH)s/ol')
+    t.cp_r('src/ol', 'build/hosted/%(BRANCH)s/ol/ol')
     t.run('%(PYTHON)s', 'bin/closure/depswriter.py',
           '--root_with_prefix', 'src ../../../ol',
-          '--root', 'build/gh-pages/%(BRANCH)s/closure-library/closure/goog',
-          '--root_with_prefix', 'build/gh-pages/%(BRANCH)s/closure-library/'
+          '--root', 'build/hosted/%(BRANCH)s/closure-library/closure/goog',
+          '--root_with_prefix', 'build/hosted/%(BRANCH)s/closure-library/'
           'third_party ../../third_party',
-          '--output_file', 'build/gh-pages/%(BRANCH)s/build/ol-deps.js')
+          '--output_file', 'build/hosted/%(BRANCH)s/build/ol-deps.js')
 
 
 @target('check-examples', 'host-examples', phony=True)
 def check_examples(t):
-    examples = ['build/gh-pages/%(BRANCH)s/' + e for e in EXAMPLES]
+    examples = ['build/hosted/%(BRANCH)s/' + e for e in EXAMPLES]
     all_examples = \
         [e + '?mode=raw' for e in examples] + \
         [e + '?mode=whitespace' for e in examples] + \
         [e + '?mode=simple' for e in examples] + \
-        examples
+        [e + '?mode=advanced' for e in examples]
     for example in all_examples:
         t.run('%(PHANTOMJS)s', 'bin/check-example.js', example)
 
@@ -682,7 +691,10 @@ def proj4js_zip(t):
     t.info('downloaded %r', t.name)
 
 
-@target('test', INTERNAL_SRC, PROJ4JS, 'build/test/requireall.js', phony=True)
+virtual('test-deps', INTERNAL_SRC, PROJ4JS, 'build/test/requireall.js')
+
+
+@target('test', 'test-deps', phony=True)
 def test(t):
     t.run('%(PHANTOMJS)s', 'test/mocha-phantomjs.coffee', 'test/ol.html')
 

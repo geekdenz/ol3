@@ -66,21 +66,22 @@ ol.interaction.DragRotateAndZoom.prototype.handleDrag =
   var map = mapBrowserEvent.map;
   var size = map.getSize();
   var delta = new goog.math.Vec2(
-      browserEvent.offsetX - size.width / 2,
-      size.height / 2 - browserEvent.offsetY);
+      browserEvent.offsetX - size[0] / 2,
+      size[1] / 2 - browserEvent.offsetY);
   var theta = Math.atan2(delta.y, delta.x);
   var magnitude = delta.magnitude();
   // FIXME works for View2D only
   var view = map.getView().getView2D();
+  var view2DState = view.getView2DState();
   map.requestRenderFrame();
   if (goog.isDef(this.lastAngle_)) {
     var angleDelta = theta - this.lastAngle_;
     ol.interaction.Interaction.rotateWithoutConstraints(
-        map, view, view.getRotation() - angleDelta);
+        map, view, view2DState.rotation - angleDelta);
   }
   this.lastAngle_ = theta;
   if (goog.isDef(this.lastMagnitude_)) {
-    var resolution = this.lastMagnitude_ * (view.getResolution() / magnitude);
+    var resolution = this.lastMagnitude_ * (view2DState.resolution / magnitude);
     ol.interaction.Interaction.zoomWithoutConstraints(map, view, resolution);
   }
   if (goog.isDef(this.lastMagnitude_)) {
@@ -96,12 +97,15 @@ ol.interaction.DragRotateAndZoom.prototype.handleDrag =
 ol.interaction.DragRotateAndZoom.prototype.handleDragEnd =
     function(mapBrowserEvent) {
   var map = mapBrowserEvent.map;
+  // FIXME works for View2D only
   var view = map.getView().getView2D();
+  var view2DState = view.getView2DState();
   var direction = this.lastScaleDelta_ - 1;
   map.withFrozenRendering(function() {
-    ol.interaction.Interaction.rotate(map, view, view.getRotation());
-    ol.interaction.Interaction.zoom(map, view, view.getResolution(), undefined,
-        ol.interaction.DRAGROTATEANDZOOM_ANIMATION_DURATION, direction);
+    ol.interaction.Interaction.rotate(map, view, view2DState.rotation);
+    ol.interaction.Interaction.zoom(map, view, view2DState.resolution,
+        undefined, ol.interaction.DRAGROTATEANDZOOM_ANIMATION_DURATION,
+        direction);
   });
   this.lastScaleDelta_ = 0;
   return true;

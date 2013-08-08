@@ -2,7 +2,7 @@ goog.require('ol.Map');
 goog.require('ol.RendererHints');
 goog.require('ol.View2D');
 goog.require('ol.layer.TileLayer');
-goog.require('ol.projection');
+goog.require('ol.proj');
 goog.require('ol.source.BingMaps');
 
 
@@ -13,7 +13,7 @@ for (var i = 0; i < styles.length; ++i) {
     visible: false,
     preload: Infinity,
     source: new ol.source.BingMaps({
-      key: 'AlQLZ0-5yk301_ESrmNLma3LYxEKNSg7w-e_knuRfyYFtld-UFvXVs38NOulku3Q',
+      key: 'Ar33pRUvQOdESG8m_T15MUmNz__E1twPo42bFx9jvdDePhX0PNgAcEm44OVTS7tt',
       style: styles[i]
     })
   }));
@@ -23,7 +23,7 @@ var map = new ol.Map({
   renderers: ol.RendererHints.createFromQueryData(),
   target: 'map',
   view: new ol.View2D({
-    center: ol.projection.transform([-123.1, 49.25], 'EPSG:4326', 'EPSG:3857'),
+    center: ol.proj.transform([-123.1, 49.25], 'EPSG:4326', 'EPSG:3857'),
     zoom: 8
   })
 });

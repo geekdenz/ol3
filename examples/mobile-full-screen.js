@@ -15,7 +15,7 @@ var map = new ol.Map({
   layers: [
     new ol.layer.TileLayer({
       source: new ol.source.BingMaps({
-        key: 'AlQLZ0-5yk301_ESrmNLma3LYxEKNSg7w-e_knuRfyYFtld-UFvXVs38NOulku3Q',
+        key: 'Ar33pRUvQOdESG8m_T15MUmNz__E1twPo42bFx9jvdDePhX0PNgAcEm44OVTS7tt',
         style: 'Road'
       })
     })
@@ -29,7 +29,7 @@ var geolocation = new ol.Geolocation({
   tracking: true
 });
 geolocation.bindTo('projection', view);
-geolocation.once('position_changed', function() {
+geolocation.once('change:position', function() {
   view.setCenter(geolocation.getPosition());
   view.setResolution(2.388657133911758);
 });

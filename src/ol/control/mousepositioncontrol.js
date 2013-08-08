@@ -10,15 +10,38 @@ goog.require('goog.events');
 goog.require('goog.events.EventType');
 goog.require('goog.style');
 goog.require('ol.CoordinateFormatType');
+goog.require('ol.Object');
 goog.require('ol.Pixel');
 goog.require('ol.Projection');
 goog.require('ol.TransformFunction');
 goog.require('ol.control.Control');
-goog.require('ol.projection');
+goog.require('ol.proj');
+
+
+/**
+ * @enum {string}
+ */
+ol.control.MousePositionProperty = {
+  PROJECTION: 'projection',
+  COORDINATE_FORMAT: 'coordinateFormat'
+};
 
 
 
 /**
+ * Create a new control to show the position of the mouse in the map's
+ * projection (or any other supplied projection). By default the control is
+ * shown in the top right corner of the map but this can be changed by using
+ * a css selector .ol-mouse-position.
+ *
+ * Example:
+ *
+ *     var map = new ol.Map({
+ *       controls: ol.control.defaults({}, [
+ *         new ol.control.MousePosition({projection: ol.proj.get('EPSG:4326')})
+ *       ]),
+ *       ...
+ *
  * @constructor
  * @extends {ol.control.Control}
  * @param {ol.control.MousePositionOptions=} opt_options Mouse position options.
@@ -27,8 +50,11 @@ ol.control.MousePosition = function(opt_options) {
 
   var options = goog.isDef(opt_options) ? opt_options : {};
 
+  var className = goog.isDef(options.className) ?
+      options.className : 'ol-mouse-position';
+
   var element = goog.dom.createDom(goog.dom.TagName.DIV, {
-    'class': 'ol-mouse-position'
+    'class': className
   });
 
   goog.base(this, {
@@ -37,17 +63,16 @@ ol.control.MousePosition = function(opt_options) {
     target: options.target
   });
 
-  /**
-   * @private
-   * @type {ol.Projection}
-   */
-  this.projection_ = ol.projection.get(options.projection);
+  goog.events.listen(this,
+      ol.Object.getChangeEventType(ol.control.MousePositionProperty.PROJECTION),
+      this.handleProjectionChanged_, false, this);
 
-  /**
-   * @private
-   * @type {ol.CoordinateFormatType|undefined}
-   */
-  this.coordinateFormat_ = options.coordinateFormat;
+  if (goog.isDef(options.coordinateFormat)) {
+    this.setCoordinateFormat(options.coordinateFormat);
+  }
+  if (goog.isDef(options.projection)) {
+    this.setProjection(ol.proj.get(options.projection));
+  }
 
   /**
    * @private
@@ -70,15 +95,9 @@ ol.control.MousePosition = function(opt_options) {
 
   /**
    * @private
-   * @type {ol.TransformFunction}
+   * @type {?ol.TransformFunction}
    */
-  this.transform_ = ol.projection.identityTransform;
-
-  /**
-   * @private
-   * @type {ol.Projection}
-   */
-  this.renderedProjection_ = null;
+  this.transform_ = null;
 
   /**
    * @private
@@ -98,10 +117,47 @@ ol.control.MousePosition.prototype.handleMapPostrender = function(mapEvent) {
   if (goog.isNull(frameState)) {
     this.mapProjection_ = null;
   } else {
-    this.mapProjection_ = frameState.view2DState.projection;
+    if (this.mapProjection_ != frameState.view2DState.projection) {
+      this.mapProjection_ = frameState.view2DState.projection;
+      this.transform_ = null;
+    }
   }
   this.updateHTML_(this.lastMouseMovePixel_);
 };
+
+
+/**
+ * @private
+ */
+ol.control.MousePosition.prototype.handleProjectionChanged_ = function() {
+  this.transform_ = null;
+};
+
+
+/**
+ * @return {ol.CoordinateFormatType|undefined} projection.
+ */
+ol.control.MousePosition.prototype.getCoordinateFormat = function() {
+  return /** @type {ol.CoordinateFormatType|undefined} */ (
+      this.get(ol.control.MousePositionProperty.COORDINATE_FORMAT));
+};
+goog.exportProperty(
+    ol.control.MousePosition.prototype,
+    'getCoordinateFormat',
+    ol.control.MousePosition.prototype.getCoordinateFormat);
+
+
+/**
+ * @return {ol.Projection|undefined} projection.
+ */
+ol.control.MousePosition.prototype.getProjection = function() {
+  return /** @type {ol.Projection|undefined} */ (
+      this.get(ol.control.MousePositionProperty.PROJECTION));
+};
+goog.exportProperty(
+    ol.control.MousePosition.prototype,
+    'getProjection',
+    ol.control.MousePosition.prototype.getProjection);
 
 
 /**
@@ -112,9 +168,8 @@ ol.control.MousePosition.prototype.handleMouseMove = function(browserEvent) {
   var map = this.getMap();
   var eventPosition = goog.style.getRelativePosition(
       browserEvent, map.getViewport());
-  var pixel = new ol.Pixel(eventPosition.x, eventPosition.y);
-  this.updateHTML_(pixel);
-  this.lastMouseMovePixel_ = pixel;
+  this.lastMouseMovePixel_ = [eventPosition.x, eventPosition.y];
+  this.updateHTML_(this.lastMouseMovePixel_);
 };
 
 
@@ -146,27 +201,52 @@ ol.control.MousePosition.prototype.setMap = function(map) {
 
 
 /**
+ * @param {ol.CoordinateFormatType} format Coordinate format.
+ */
+ol.control.MousePosition.prototype.setCoordinateFormat = function(format) {
+  this.set(ol.control.MousePositionProperty.COORDINATE_FORMAT, format);
+};
+goog.exportProperty(
+    ol.control.MousePosition.prototype,
+    'setCoordinateFormat',
+    ol.control.MousePosition.prototype.setCoordinateFormat);
+
+
+/**
+ * @param {ol.Projection} projection Projection.
+ */
+ol.control.MousePosition.prototype.setProjection = function(projection) {
+  this.set(ol.control.MousePositionProperty.PROJECTION, projection);
+};
+goog.exportProperty(
+    ol.control.MousePosition.prototype,
+    'setProjection',
+    ol.control.MousePosition.prototype.setProjection);
+
+
+/**
  * @param {?ol.Pixel} pixel Pixel.
  * @private
  */
 ol.control.MousePosition.prototype.updateHTML_ = function(pixel) {
   var html = this.undefinedHTML_;
-  if (!goog.isNull(pixel)) {
-    if (this.renderedProjection_ != this.mapProjection_) {
-      if (!goog.isNull(this.projection_)) {
-        this.transform_ = ol.projection.getTransformFromProjections(
-            this.mapProjection_, this.projection_);
+  if (!goog.isNull(pixel) && !goog.isNull(this.mapProjection_)) {
+    if (goog.isNull(this.transform_)) {
+      var projection = this.getProjection();
+      if (goog.isDef(projection)) {
+        this.transform_ = ol.proj.getTransformFromProjections(
+            this.mapProjection_, projection);
       } else {
-        this.transform_ = ol.projection.identityTransform;
+        this.transform_ = ol.proj.identityTransform;
       }
-      this.renderedProjection_ = this.mapProjection_;
     }
     var map = this.getMap();
     var coordinate = map.getCoordinateFromPixel(pixel);
     if (!goog.isNull(coordinate)) {
       this.transform_(coordinate, coordinate);
-      if (goog.isDef(this.coordinateFormat_)) {
-        html = this.coordinateFormat_(coordinate);
+      var coordinateFormat = this.getCoordinateFormat();
+      if (goog.isDef(coordinateFormat)) {
+        html = coordinateFormat(coordinate);
       } else {
         html = coordinate.toString();
       }

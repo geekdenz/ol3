@@ -5,7 +5,7 @@ describe('ol.source.TileSource', function() {
   describe('constructor', function() {
     it('returns a tile source', function() {
       var source = new ol.source.TileSource({
-        projection: ol.projection.get('EPSG:4326')
+        projection: ol.proj.get('EPSG:4326')
       });
       expect(source).to.be.a(ol.source.Source);
       expect(source).to.be.a(ol.source.TileSource);
@@ -197,12 +197,12 @@ ol.test.source.MockTileSource = function(loaded) {
     resolutions: [360 / 256, 180 / 256, 90 / 256, 45 / 256],
     extent: extent,
     origin: [-180, -180],
-    tileSize: new ol.Size(256, 256)
+    tileSize: [256, 256]
   });
 
   goog.base(this, {
     extent: extent,
-    projection: ol.projection.get('EPSG:4326'),
+    projection: ol.proj.get('EPSG:4326'),
     tileGrid: tileGrid
   });
 
@@ -265,11 +265,10 @@ describe('ol.test.source.MockTileSource', function() {
 });
 
 goog.require('goog.object');
-goog.require('ol.Size');
 goog.require('ol.Tile');
 goog.require('ol.TileCoord');
 goog.require('ol.TileState');
-goog.require('ol.projection');
+goog.require('ol.proj');
 goog.require('ol.source.Source');
 goog.require('ol.source.TileSource');
 goog.require('ol.tilegrid.TileGrid');

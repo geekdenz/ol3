@@ -13,8 +13,6 @@ goog.require('goog.asserts');
 goog.require('goog.async.AnimationDelay');
 goog.require('goog.async.Delay');
 goog.require('goog.debug.Console');
-goog.require('goog.debug.Logger');
-goog.require('goog.debug.Logger.Level');
 goog.require('goog.dispose');
 goog.require('goog.dom');
 goog.require('goog.dom.TagName');
@@ -27,6 +25,8 @@ goog.require('goog.events.KeyHandler');
 goog.require('goog.events.KeyHandler.EventType');
 goog.require('goog.events.MouseWheelHandler');
 goog.require('goog.events.MouseWheelHandler.EventType');
+goog.require('goog.log');
+goog.require('goog.log.Level');
 goog.require('goog.object');
 goog.require('goog.style');
 goog.require('goog.vec.Mat4');
@@ -56,8 +56,8 @@ goog.require('ol.control.defaults');
 goog.require('ol.extent');
 goog.require('ol.interaction.defaults');
 goog.require('ol.layer.Layer');
-goog.require('ol.projection');
-goog.require('ol.projection.addCommonProjections');
+goog.require('ol.proj');
+goog.require('ol.proj.addCommonProjections');
 goog.require('ol.renderer.Map');
 goog.require('ol.renderer.canvas.Map');
 goog.require('ol.renderer.canvas.SUPPORTED');
@@ -196,7 +196,7 @@ ol.Map = function(options) {
 
   /**
    * @private
-   * @type {?number}
+   * @type {goog.events.Key}
    */
   this.viewPropertyListenerKey_ = null;
 
@@ -246,6 +246,12 @@ ol.Map = function(options) {
       goog.events.MouseWheelHandler.EventType.MOUSEWHEEL,
       this.handleBrowserEvent, false, this);
   this.registerDisposable(mouseWheelHandler);
+
+  /**
+   * @type {ol.Collection}
+   * @private
+   */
+  this.controls_ = optionsInternal.controls;
 
   /**
    * @type {ol.Collection}
@@ -307,34 +313,45 @@ ol.Map = function(options) {
    */
   this.layersListenerKeys_ = null;
 
-  goog.events.listen(this, ol.Object.getChangedEventType(ol.MapProperty.LAYERS),
+  goog.events.listen(this, ol.Object.getChangeEventType(ol.MapProperty.LAYERS),
       this.handleLayersChanged_, false, this);
-  goog.events.listen(this, ol.Object.getChangedEventType(ol.MapProperty.VIEW),
+  goog.events.listen(this, ol.Object.getChangeEventType(ol.MapProperty.VIEW),
       this.handleViewChanged_, false, this);
-  goog.events.listen(this, ol.Object.getChangedEventType(ol.MapProperty.SIZE),
+  goog.events.listen(this, ol.Object.getChangeEventType(ol.MapProperty.SIZE),
       this.handleSizeChanged_, false, this);
-  goog.events.listen(this, ol.Object.getChangedEventType(ol.MapProperty.TARGET),
+  goog.events.listen(this, ol.Object.getChangeEventType(ol.MapProperty.TARGET),
       this.handleTargetChanged_, false, this);
 
   // setValues will trigger the rendering of the map if the map
   // is "defined" already.
   this.setValues(optionsInternal.values);
 
-  if (goog.isDef(optionsInternal.controls)) {
-    goog.array.forEach(optionsInternal.controls,
-        /**
-         * @param {ol.control.Control} control Control.
-         */
-        function(control) {
-          control.setMap(this);
-        }, this);
-  }
+  this.controls_.forEach(
+      /**
+       * @param {ol.control.Control} control Control.
+       */
+      function(control) {
+        control.setMap(this);
+      }, this);
 
 };
 goog.inherits(ol.Map, ol.Object);
 
 
 /**
+ * Add the given control to the map.
+ * @param {ol.control.Control} control Control.
+ */
+ol.Map.prototype.addControl = function(control) {
+  var controls = this.getControls();
+  goog.asserts.assert(goog.isDef(controls));
+  controls.push(control);
+  control.setMap(this);
+};
+
+
+/**
+ * Adds the given layer to the top of this map.
  * @param {ol.layer.Layer} layer Layer.
  */
 ol.Map.prototype.addLayer = function(layer) {
@@ -345,6 +362,8 @@ ol.Map.prototype.addLayer = function(layer) {
 
 
 /**
+ * Add a prerender function. This can be used for attaching animations to
+ * be performed before setting the map's center.
  * @param {ol.PreRenderFunction} preRenderFunction Pre-render function.
  */
 ol.Map.prototype.addPreRenderFunction = function(preRenderFunction) {
@@ -354,6 +373,8 @@ ol.Map.prototype.addPreRenderFunction = function(preRenderFunction) {
 
 
 /**
+ * Add prerender functions. This can be used for attaching animations to
+ * be performed before setting the map's center.
  * @param {Array.<ol.PreRenderFunction>} preRenderFunctions
  *     Pre-render functions.
  */
@@ -393,6 +414,7 @@ ol.Map.prototype.freezeRendering = function() {
 
 
 /**
+ * Get the map's renderer.
  * @return {ol.renderer.Map} Renderer.
  */
 ol.Map.prototype.getRenderer = function() {
@@ -401,6 +423,7 @@ ol.Map.prototype.getRenderer = function() {
 
 
 /**
+ * Get the element in which this map is rendered.
  * @return {Element|undefined} Target.
  */
 ol.Map.prototype.getTarget = function() {
@@ -421,30 +444,49 @@ ol.Map.prototype.getCoordinateFromPixel = function(pixel) {
   if (goog.isNull(frameState)) {
     return null;
   } else {
-    var vec2 = [pixel.x, pixel.y];
+    var vec2 = pixel.slice();
     return ol.vec.Mat4.multVec2(frameState.pixelToCoordinateMatrix, vec2, vec2);
   }
 };
 
 
 /**
- * Get feature information for a pixel on the map.
- *
- * @param {ol.Pixel} pixel Pixel coordinate relative to the map viewport.
- * @param {Array.<ol.layer.Layer>=} opt_layers Layers to restrict the query to.
- *     All layers will be queried if not provided.
- * @return {Array.<ol.Feature|string>} Feature information.  Layers that are
- *     able to return attribute data will return ol.Feature instances, other
- *     layers will return a string which can either be plain text or markup.
+ * @return {ol.Collection} Controls.
  */
-ol.Map.prototype.getFeatureInfoForPixel = function(pixel, opt_layers) {
-  var layers = goog.isDefAndNotNull(opt_layers) ?
-      opt_layers : this.getLayers().getArray();
-  return this.getRenderer().getFeatureInfoForPixel(pixel, layers);
+ol.Map.prototype.getControls = function() {
+  return this.controls_;
 };
 
 
 /**
+ * Get feature information for a pixel on the map.
+ *
+ * @param {ol.GetFeatureInfoOptions} options Options.
+ */
+ol.Map.prototype.getFeatureInfo = function(options) {
+  var layers = goog.isDefAndNotNull(options.layers) ?
+      options.layers : this.getLayers().getArray();
+  this.getRenderer().getFeatureInfoForPixel(
+      options.pixel, layers, options.success, options.error);
+};
+
+
+/**
+ * Get features for a pixel on the map.
+ *
+ * @param {ol.GetFeaturesOptions} options Options.
+ */
+ol.Map.prototype.getFeatures = function(options) {
+  var layers = goog.isDefAndNotNull(options.layers) ?
+      options.layers : this.getLayers().getArray();
+  this.getRenderer().getFeaturesForPixel(
+      options.pixel, layers, options.success, options.error);
+};
+
+
+/**
+ * Gets the collection on interactions associated with this map.
+ * Interactions are used for e.g. pan, zoom and rotate.
  * @return {ol.Collection} Interactions.
  */
 ol.Map.prototype.getInteractions = function() {
@@ -453,6 +495,7 @@ ol.Map.prototype.getInteractions = function() {
 
 
 /**
+ * Get the collection of layers associated with this map.
  * @return {ol.Collection} Layers.
  */
 ol.Map.prototype.getLayers = function() {
@@ -474,13 +517,13 @@ ol.Map.prototype.getPixelFromCoordinate = function(coordinate) {
     return null;
   } else {
     var vec2 = coordinate.slice(0, 2);
-    ol.vec.Mat4.multVec2(frameState.coordinateToPixelMatrix, vec2, vec2);
-    return new ol.Pixel(vec2[0], vec2[1]);
+    return ol.vec.Mat4.multVec2(frameState.coordinateToPixelMatrix, vec2, vec2);
   }
 };
 
 
 /**
+ * Get the size of this map.
  * @return {ol.Size|undefined} Size.
  */
 ol.Map.prototype.getSize = function() {
@@ -493,6 +536,8 @@ goog.exportProperty(
 
 
 /**
+ * Get the view associated with this map. This can be a 2D or 3D view. A 2D
+ * view manages properties such as center and resolution.
  * @return {ol.View} View.
  */
 ol.Map.prototype.getView = function() {
@@ -614,6 +659,11 @@ ol.Map.prototype.handleLayersRemove_ = function(collectionEvent) {
  * @param {ol.MapBrowserEvent} mapBrowserEvent The event to handle.
  */
 ol.Map.prototype.handleMapBrowserEvent = function(mapBrowserEvent) {
+  if (goog.isNull(this.frameState_)) {
+    // With no view defined, we cannot translate pixels into geographical
+    // coordinates so interactions cannot be used.
+    return;
+  }
   mapBrowserEvent.frameState = this.frameState_;
   var interactions = this.getInteractions();
   var interactionsArray = /** @type {Array.<ol.interaction.Interaction>} */
@@ -622,8 +672,8 @@ ol.Map.prototype.handleMapBrowserEvent = function(mapBrowserEvent) {
   if (this.dispatchEvent(mapBrowserEvent) !== false) {
     for (i = interactionsArray.length - 1; i >= 0; i--) {
       var interaction = interactionsArray[i];
-      interaction.handleMapBrowserEvent(mapBrowserEvent);
-      if (mapBrowserEvent.defaultPrevented) {
+      var cont = interaction.handleMapBrowserEvent(mapBrowserEvent);
+      if (!cont) {
         break;
       }
     }
@@ -731,7 +781,7 @@ ol.Map.prototype.handleViewChanged_ = function() {
   var view = this.getView();
   if (goog.isDefAndNotNull(view)) {
     this.viewPropertyListenerKey_ = goog.events.listen(
-        view, ol.ObjectEventType.CHANGED,
+        view, ol.ObjectEventType.CHANGE,
         this.handleViewPropertyChanged_, false, this);
   }
   this.render();
@@ -777,6 +827,24 @@ ol.Map.prototype.requestRenderFrame = function() {
 
 
 /**
+ * Remove the given control from the map.
+ * @param {ol.control.Control} control Control.
+ * @return {ol.control.Control|undefined} The removed control of undefined
+ *     if the control was not found.
+ */
+ol.Map.prototype.removeControl = function(control) {
+  var controls = this.getControls();
+  goog.asserts.assert(goog.isDef(controls));
+  if (goog.isDef(controls.remove(control))) {
+    control.setMap(null);
+    return control;
+  }
+  return undefined;
+};
+
+
+/**
+ * Removes the given layer from the map.
  * @param {ol.layer.Layer} layer Layer.
  * @return {ol.layer.Layer|undefined} The removed layer or undefined if the
  *     layer was not found.
@@ -796,7 +864,7 @@ ol.Map.prototype.renderFrame_ = function(time) {
 
   var i, ii, view2DState;
 
-  if (this.freezeRenderingCount_ != 0) {
+  if (this.freezeRenderingCount_ !== 0) {
     return;
   }
 
@@ -879,6 +947,7 @@ ol.Map.prototype.renderFrame_ = function(time) {
 
 
 /**
+ * Sets the whole collection of layers for this map.
  * @param {ol.Collection} layers Layers.
  */
 ol.Map.prototype.setLayers = function(layers) {
@@ -891,6 +960,7 @@ goog.exportProperty(
 
 
 /**
+ * Set the size of this map.
  * @param {ol.Size|undefined} size Size.
  */
 ol.Map.prototype.setSize = function(size) {
@@ -903,6 +973,7 @@ goog.exportProperty(
 
 
 /**
+ * Set the target element to render this map into.
  * @param {Element|string|undefined} target Target.
  */
 ol.Map.prototype.setTarget = function(target) {
@@ -918,6 +989,7 @@ goog.exportProperty(
 
 
 /**
+ * Set the view for this map.
  * @param {ol.IView} view View.
  */
 ol.Map.prototype.setView = function(view) {
@@ -948,7 +1020,7 @@ ol.Map.prototype.updateSize = function() {
   var target = this.getTarget();
   if (goog.isDef(target)) {
     var size = goog.style.getSize(target);
-    this.setSize(new ol.Size(size.width, size.height));
+    this.setSize([size.width, size.height]);
   } else {
     this.setSize(undefined);
   }
@@ -971,7 +1043,7 @@ ol.Map.prototype.withFrozenRendering = function(f, opt_obj) {
 
 
 /**
- * @typedef {{controls: Array.<ol.control.Control>,
+ * @typedef {{controls: ol.Collection,
  *            interactions: ol.Collection,
  *            rendererConstructor:
  *                function(new: ol.renderer.Map, Element, ol.Map),
@@ -1048,8 +1120,17 @@ ol.Map.createOptionsInternal = function(options) {
     }
   }
 
-  var controls = goog.isDef(options.controls) ?
-      options.controls : ol.control.defaults();
+  var controls;
+  if (goog.isDef(options.controls)) {
+    if (goog.isArray(options.controls)) {
+      controls = new ol.Collection(goog.array.clone(options.controls));
+    } else {
+      goog.asserts.assertInstanceof(options.controls, ol.Collection);
+      controls = options.controls;
+    }
+  } else {
+    controls = ol.control.defaults();
+  }
 
   var interactions = goog.isDef(options.interactions) ?
       options.interactions : ol.interaction.defaults();
@@ -1082,13 +1163,13 @@ ol.RendererHints.createFromQueryData = function(opt_queryData) {
 };
 
 
-ol.projection.addCommonProjections();
+ol.proj.addCommonProjections();
 
 
 if (goog.DEBUG) {
   (function() {
     goog.debug.Console.autoInstall();
-    var logger = goog.debug.Logger.getLogger('ol');
-    logger.setLevel(goog.debug.Logger.Level.FINEST);
+    var logger = goog.log.getLogger('ol');
+    logger.setLevel(goog.log.Level.FINEST);
   })();
 }

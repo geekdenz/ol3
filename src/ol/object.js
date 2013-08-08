@@ -18,7 +18,7 @@ goog.require('goog.object');
  * @enum {string}
  */
 ol.ObjectEventType = {
-  CHANGED: 'changed'
+  CHANGE: 'change'
 };
 
 
@@ -33,6 +33,7 @@ ol.ObjectProperty = {
 
 
 /**
+ * Base class implementing KVO (Key Value Observing).
  * @constructor
  * @extends {goog.events.EventTarget}
  * @param {Object.<string, *>=} opt_values Values.
@@ -57,7 +58,7 @@ goog.inherits(ol.Object, goog.events.EventTarget);
  * @private
  * @type {Object.<string, string>}
  */
-ol.Object.changedEventTypeCache_ = {};
+ol.Object.changeEventTypeCache_ = {};
 
 
 /**
@@ -95,12 +96,12 @@ ol.Object.getAccessors = function(obj) {
 
 /**
  * @param {string} key Key.
- * @return {string} Changed name.
+ * @return {string} Change name.
  */
-ol.Object.getChangedEventType = function(key) {
-  return ol.Object.changedEventTypeCache_.hasOwnProperty(key) ?
-      ol.Object.changedEventTypeCache_[key] :
-      (ol.Object.changedEventTypeCache_[key] = key.toLowerCase() + '_changed');
+ol.Object.getChangeEventType = function(key) {
+  return ol.Object.changeEventTypeCache_.hasOwnProperty(key) ?
+      ol.Object.changeEventTypeCache_[key] :
+      (ol.Object.changeEventTypeCache_[key] = 'change:' + key.toLowerCase());
 };
 
 
@@ -117,7 +118,7 @@ ol.Object.getGetterName = function(key) {
 
 /**
  * @param {ol.Object} obj Object.
- * @return {Object.<string, ?number>} Listeners.
+ * @return {Object.<string, goog.events.Key>} Listeners.
  */
 ol.Object.getListeners = function(obj) {
   return obj[ol.ObjectProperty.BINDINGS] ||
@@ -137,6 +138,7 @@ ol.Object.getSetterName = function(key) {
 
 
 /**
+ * Binds a View to a Model.
  * @param {string} key Key.
  * @param {ol.Object} target Target.
  * @param {string=} opt_targetKey Target key.
@@ -146,7 +148,7 @@ ol.Object.prototype.bindTo =
     function(key, target, opt_targetKey, opt_noNotify) {
   var targetKey = opt_targetKey || key;
   this.unbind(key);
-  var eventType = ol.Object.getChangedEventType(targetKey);
+  var eventType = ol.Object.getChangeEventType(targetKey);
   var listeners = ol.Object.getListeners(this);
   listeners[key] = goog.events.listen(target, eventType, function() {
     this.notifyInternal_(key);
@@ -161,6 +163,7 @@ ol.Object.prototype.bindTo =
 
 
 /**
+ * Gets a value.
  * @param {string} key Key.
  * @return {*} Value.
  */
@@ -197,6 +200,9 @@ ol.Object.prototype.getKeys = function() {
 
 
 /**
+ * Notify all observers of a change on this property. This notifies both
+ * objects that are bound to the object's property as well as the object
+ * that it is bound to.
  * @param {string} key Key.
  */
 ol.Object.prototype.notify = function(key) {
@@ -217,18 +223,19 @@ ol.Object.prototype.notify = function(key) {
  * @private
  */
 ol.Object.prototype.notifyInternal_ = function(key) {
-  var eventType = ol.Object.getChangedEventType(key);
+  var eventType = ol.Object.getChangeEventType(key);
   this.dispatchEvent(eventType);
-  this.dispatchEvent(ol.ObjectEventType.CHANGED);
+  this.dispatchEvent(ol.ObjectEventType.CHANGE);
 };
 
 
 /**
+ * Listen for a certain type of event.
  * @param {string|Array.<string>} type The event type or array of event types.
  * @param {Function} listener The listener function.
  * @param {Object=} opt_scope Object is whose scope to call
  *     the listener.
- * @return {?number} Unique key for the listener.
+ * @return {goog.events.Key} Unique key for the listener.
  */
 ol.Object.prototype.on = function(type, listener, opt_scope) {
   return goog.events.listen(this, type, listener, false, opt_scope);
@@ -236,11 +243,12 @@ ol.Object.prototype.on = function(type, listener, opt_scope) {
 
 
 /**
+ * Listen once for a certain type of event.
  * @param {string|Array.<string>} type The event type or array of event types.
  * @param {Function} listener The listener function.
  * @param {Object=} opt_scope Object is whose scope to call
  *     the listener.
- * @return {?number} Unique key for the listener.
+ * @return {goog.events.Key} Unique key for the listener.
  */
 ol.Object.prototype.once = function(type, listener, opt_scope) {
   return goog.events.listenOnce(this, type, listener, false, opt_scope);
@@ -248,6 +256,7 @@ ol.Object.prototype.once = function(type, listener, opt_scope) {
 
 
 /**
+ * Sets a value.
  * @param {string} key Key.
  * @param {*} value Value.
  */
@@ -271,12 +280,13 @@ ol.Object.prototype.set = function(key, value) {
 
 
 /**
- * @param {Object.<string, *>} options Options.
+ * Sets a collection of key-value pairs.
+ * @param {Object.<string, *>} values Values.
  */
-ol.Object.prototype.setOptions = function(options) {
+ol.Object.prototype.setValues = function(values) {
   var key, value, setterName;
-  for (key in options) {
-    value = options[key];
+  for (key in values) {
+    value = values[key];
     setterName = ol.Object.getSetterName(key);
     if (this[setterName]) {
       this[setterName](value);
@@ -288,12 +298,8 @@ ol.Object.prototype.setOptions = function(options) {
 
 
 /**
- * @param {Object.<string, *>} values Values.
- */
-ol.Object.prototype.setValues = ol.Object.prototype.setOptions;
-
-
-/**
+ * Removes a binding. Unbinding will set the unbound property to the current
+ *     value. The object will not be notified, as the value has not changed.
  * @param {string} key Key.
  */
 ol.Object.prototype.unbind = function(key) {
@@ -311,6 +317,7 @@ ol.Object.prototype.unbind = function(key) {
 
 
 /**
+ * Unlisten for a certain type of event.
  * @param {string|Array.<string>} type The event type or array of event types.
  * @param {Function} listener The listener function.
  * @param {Object=} opt_scope Object is whose scope to call
@@ -322,6 +329,8 @@ ol.Object.prototype.un = function(type, listener, opt_scope) {
 
 
 /**
+ * Removes an event listener which was added with listen() by the key returned
+ *     by on().
  * @param {?number} key Key.
  */
 ol.Object.prototype.unByKey = function(key) {

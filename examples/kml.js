@@ -1,11 +1,9 @@
-goog.require('ol.Collection');
 goog.require('ol.Map');
 goog.require('ol.RendererHint');
 goog.require('ol.View2D');
 goog.require('ol.layer.TileLayer');
 goog.require('ol.layer.Vector');
 goog.require('ol.parser.KML');
-goog.require('ol.projection');
 goog.require('ol.source.TiledWMS');
 goog.require('ol.source.Vector');
 
@@ -21,41 +19,39 @@ var raster = new ol.layer.TileLayer({
   })
 });
 
-var epsg4326 = ol.projection.get('EPSG:4326');
-
 var vector = new ol.layer.Vector({
   source: new ol.source.Vector({
-    projection: epsg4326
-  })
+    parser: new ol.parser.KML({
+      maxDepth: 1, dimension: 2, extractStyles: true, extractAttributes: true
+    }),
+    url: 'data/kml/lines.kml'
+  }),
+  transformFeatureInfo: function(features) {
+    var info = [];
+    for (var i = 0, ii = features.length; i < ii; ++i) {
+      info.push(features[i].get('name'));
+    }
+    return info.join(', ');
+  }
 });
 
 var map = new ol.Map({
-  layers: new ol.Collection([raster, vector]),
+  layers: [raster, vector],
   renderer: ol.RendererHint.CANVAS,
   target: 'map',
   view: new ol.View2D({
-    projection: epsg4326,
+    projection: 'EPSG:4326',
     center: [-112.169, 36.099],
     zoom: 11
   })
 });
 
-var kml = new ol.parser.KML({
-  maxDepth: 1, dimension: 2, extractStyles: true, extractAttributes: true});
-
-var url = 'data/kml/lines.kml';
-var xhr = new XMLHttpRequest();
-xhr.open('GET', url, true);
-
-
-/**
- * onload handler for the XHR request.
- */
-xhr.onload = function() {
-  if (xhr.status == 200) {
-    // this is silly to have to tell the layer the destination projection
-    var projection = map.getView().getProjection();
-    vector.parseFeatures(xhr.responseText, kml, epsg4326);
-  }
-};
-xhr.send();
+map.on(['click', 'mousemove'], function(evt) {
+  map.getFeatureInfo({
+    pixel: evt.getPixel(),
+    layers: [vector],
+    success: function(featureInfo) {
+      document.getElementById('info').innerHTML = featureInfo[0] || '&nbsp';
+    }
+  });
+});

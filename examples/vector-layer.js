@@ -1,39 +1,63 @@
-goog.require('ol.Collection');
 goog.require('ol.Map');
 goog.require('ol.RendererHint');
 goog.require('ol.View2D');
+goog.require('ol.expr');
 goog.require('ol.layer.TileLayer');
 goog.require('ol.layer.Vector');
 goog.require('ol.parser.GeoJSON');
-goog.require('ol.projection');
 goog.require('ol.source.MapQuestOpenAerial');
 goog.require('ol.source.Vector');
 goog.require('ol.style.Polygon');
 goog.require('ol.style.Rule');
 goog.require('ol.style.Style');
+goog.require('ol.style.Text');
 
 
 var raster = new ol.layer.TileLayer({
   source: new ol.source.MapQuestOpenAerial()
 });
 
+// TODO: discuss scale dependent rules
+ol.expr.register('resolution', function() {
+  return map.getView().getView2D().getResolution();
+});
+
 var vector = new ol.layer.Vector({
   source: new ol.source.Vector({
-    projection: ol.projection.get('EPSG:4326')
+    parser: new ol.parser.GeoJSON(),
+    url: 'data/countries.geojson'
   }),
   style: new ol.style.Style({rules: [
     new ol.style.Rule({
       symbolizers: [
         new ol.style.Polygon({
-          strokeColor: '#bada55'
+          strokeColor: '#319FD3',
+          strokeOpacity: 1,
+          fillColor: '#ffffff',
+          fillOpacity: 0.6
+        })
+      ]
+    }),
+    new ol.style.Rule({
+      filter: 'resolution() < 5000',
+      symbolizers: [
+        new ol.style.Text({
+          color: '#000000',
+          text: ol.expr.parse('name'),
+          fontFamily: 'Calibri,sans-serif',
+          fontSize: 12
         })
       ]
     })
-  ]})
+  ]}),
+  transformFeatureInfo: function(features) {
+    return features.length > 0 ?
+        features[0].getFeatureId() + ': ' + features[0].get('name') : '&nbsp;';
+  }
 });
 
 var map = new ol.Map({
-  layers: new ol.Collection([raster, vector]),
+  layers: [raster, vector],
   renderer: ol.RendererHint.CANVAS,
   target: 'map',
   view: new ol.View2D({
@@ -42,30 +66,12 @@ var map = new ol.Map({
   })
 });
 
-map.on('mousemove', function(evt) {
-  var features = map.getFeatureInfoForPixel(evt.getPixel(), [vector]);
-  var info = [];
-  for (var i = 0, ii = features.length; i < ii; ++i) {
-    info.push(features[i].get('name'));
-  }
-  document.getElementById('info').innerHTML = info.join(', ') || '&nbsp;';
+map.on(['click', 'mousemove'], function(evt) {
+  map.getFeatureInfo({
+    pixel: evt.getPixel(),
+    layers: [vector],
+    success: function(featureInfo) {
+      document.getElementById('info').innerHTML = featureInfo[0];
+    }
+  });
 });
-
-
-var geojson = new ol.parser.GeoJSON();
-var url = 'data/countries.json';
-var xhr = new XMLHttpRequest();
-xhr.open('GET', url, true);
-
-
-/**
- * onload handler for the XHR request.
- */
-xhr.onload = function() {
-  if (xhr.status == 200) {
-    // this is silly to have to tell the layer the destination projection
-    var projection = map.getView().getProjection();
-    vector.parseFeatures(xhr.responseText, geojson, projection);
-  }
-};
-xhr.send();

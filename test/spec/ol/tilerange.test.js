@@ -63,6 +63,7 @@ describe('ol.TileRange', function() {
         var tileRange = new ol.TileRange.boundingTileRange(
             new ol.TileCoord(3, 1, 3),
             new ol.TileCoord(4, 2, 0));
+        tileRange = tileRange; // suppress gjslint warning about unused variable
       }).to.throwException();
     });
   });
@@ -101,8 +102,7 @@ describe('ol.TileRange', function() {
     it('returns the expected size', function() {
       var tileRange = new ol.TileRange(0, 2, 1, 4);
       var size = tileRange.getSize();
-      expect(size.width).to.eql(3);
-      expect(size.height).to.eql(4);
+      expect(size).to.eql([3, 4]);
     });
   });
 
