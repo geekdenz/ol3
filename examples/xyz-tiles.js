@@ -7,18 +7,22 @@ goog.require('ol.source.OSM');
 goog.require('ol.tilegrid.XYZ');
 goog.require('ol.source.ImageTileSource');
 
-function pad(n) {
+function slashify(s) {
+    var paddedThree = pad(s, 3);
+    return s.match(/.{3}/g).join('/');
+}
+function pad(n, num) {
     var len = (""+n).length;
     var s="";
-    for (var i = 3-len; i > 0; i--) {
+    for (var i = num-len; i > 0; i--) {
       s+="0";
     }
-    return s+n;
+    return (s+n);
 }
 function createUrl(x, y, z) {
     var url = 'http://proxy.zen.landcareresearch.co.nz/possums/cache/possum_2009_cache_nztm/portalgridnztm1/';
     var zeros = '000';
-    var s = '0'+ z +'/'+ zeros +'/'+ zeros +'/'+ pad(x) +'/'+ zeros +'/'+ zeros +'/'+ pad(y) +'.png';
+    var s = '0'+ z +'/'+ slashify(pad(x, 9)) +'/'+ slashify(pad(y, 9)) +'.png';
     return url + s;
 }
 var view = new ol.View2D({
