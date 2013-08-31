@@ -1,0 +1,2 @@
+@exportSymbol ol.source.VideoTileSource
+@exportProperty ol.source.VideoTileSource.prototype.getTileGrid
