@@ -8,7 +8,71 @@
     <link rel="stylesheet" href="../resources/bootstrap/css/bootstrap.min.css" type="text/css">
     <link rel="stylesheet" href="../resources/layout.css" type="text/css">
     <link rel="stylesheet" href="../resources/bootstrap/css/bootstrap-responsive.min.css" type="text/css">
-    <title>Canvas tiles example</title>
+    <title>Video tiles example</title>
+    <style>
+      .map:-moz-full-screen {
+        height: 100%;
+      }
+      .map:-webkit-full-screen {
+        height: 100%;
+      }
+      .map:full-screen {
+        height: 100%;
+      }
+      .video-controls {
+        position: absolute;
+        width: 300px;
+        height: 200px;
+        right: 0;
+        bottom: 0;
+        background-color: #000;
+        color: #ccc;
+        font-weight: bold;
+        font-size: 14pt;
+        padding: 20px;
+        z-index: 9999;
+      }
+      .video-controls a {
+        color: #ccc;
+      }
+
+      .goog-slider-vertical,
+      .goog-slider-horizontal {
+        background-color: ThreeDFace;
+        position: relative;
+        overflow: hidden;
+      }
+      .goog-slider-thumb {
+        position: absolute;
+        background-color: ThreeDShadow;
+        overflow: hidden;
+      }
+
+      .goog-slider-vertical .goog-slider-thumb {
+        left: 0;
+        height: 20px;
+        width: 100%;
+      }
+
+      .goog-slider-horizontal .goog-slider-thumb {
+        top: 0;
+        width: 20px;
+        height: 100%;
+      }
+      .goog-slider-disabled {
+        background-color: lightgray
+      }
+      #s-h {
+        margin-bottom: 2em;
+      }
+      strong {
+        display: block;
+        margin-bottom: 3px;
+      }
+    </style>
+
+
+
   </head>
   <body>
 
@@ -30,19 +94,29 @@
 
       <div class="row-fluid">
         <div class="span12">
-          <div id="map" class="map"></div>
+          <div id="map" class="map">
+            <div class="video-controls">
+              <p><a class="play" href="#">Play Video</a></p>
+              <p>Year: <span class="year">2009</span></p>
+              <div id="s1" class="goog-slider" style="width: 200px; height: 20px">
+                <!-- this line is here just to show that custom content can be added -->
+                <div style="position:absolute;width:100%;top:9px;border:1px inset white;
+                            overflow:hidden;height:0"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="row-fluid">
 
         <div class="span4">
-          <h4 id="title">Canvas tiles example</h4>
-          <p id="shortdesc">The black grid tiles are generated on the client with an HTML5 canvas. Note that the tile coordinates are ol3 normalized tile coordinates (origin bottom left), not OSM tile coordinates (origin top left).</p>
+          <h4 id="title">Video tiles XYZ example</h4>
+          <p id="shortdesc">Illustrates video tiles instead of images which can be received from a file based video tile cache.</p>
           <div id="docs">
-            <p>See the <a href="xyz-tiles.js" target="_blank">xyz-tiles.js source</a> to see how this is done.</p>
+            <p>See the <a href="xyz-video-tiles.js" target="_blank">xyz-video-tiles.js source</a> to see how this is done.</p>
           </div>
-          <div id="tags">layers, openstreetmap, canvas</div>
+          <div id="tags">video, tiles, possum model</div>
         </div>
 
       </div>

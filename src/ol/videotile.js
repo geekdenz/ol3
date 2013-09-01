@@ -151,3 +151,11 @@ ol.VideoTile.prototype.unlistenImage_ = function() {
   goog.array.forEach(this.imageListenerKeys_, goog.events.unlistenByKey);
   this.imageListenerKeys_ = null;
 };
+
+/**
+ * Play the video
+ */
+ol.VideoTile.prototype.play = function() {
+  var video = this.getImage();
+  video.play();
+};
