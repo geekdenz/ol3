@@ -1,1 +1,1 @@
-@exportClass ol.source.TiledVideoWMS ol.source.TiledWMSOptions
+@exportClass ol.source.TiledVideoWMS ol.source.TiledVideoWMSOptions

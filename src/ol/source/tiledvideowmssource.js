@@ -15,7 +15,7 @@ goog.require('ol.source.wms');
 /**
  * @constructor
  * @extends {ol.source.VideoTileSource}
- * @param {ol.source.TiledWMSOptions} options Tiled WMS options.
+ * @param {ol.source.TiledVideoWMSOptions} options Tiled WMS options.
  */
 ol.source.TiledVideoWMS = function(options) {
   var tileGrid;
