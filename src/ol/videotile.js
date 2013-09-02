@@ -34,11 +34,11 @@ ol.VideoTile = function(tileCoord, state, src, crossOrigin) {
 
   /**
    * @private
-   * @type {HTMLVideoElement}
+   * @type {HTMLVideoElement|Element}
    */
-  this.image_ = /** @type {HTMLVideoElement} */document.createElement('video'); // This line does the trick
+  /** @type {HTMLVideoElement} @suppress {checkTypes} */ var video = /** @type {HTMLVideoElement} */ (document.createElement('video'));
+  this.image_ = video;
   this.image_.preload = 'metadata';
-  //this.image_ = new Image();//document.createElement('video'); // This line does the trick
 
   if (!goog.isNull(crossOrigin)) {
     this.image_.crossOrigin = crossOrigin;
@@ -63,22 +63,23 @@ goog.inherits(ol.VideoTile, ol.Tile);
 /**
  * @inheritDoc
  * @return {HTMLVideoElement}
+ * @suppress {checkTypes}
  */
 ol.VideoTile.prototype.getImage = function(opt_context) {
   if (goog.isDef(opt_context)) {
-    var image;
+    var /** @type {HTMLVideoElement} */ image;
     var key = goog.getUid(opt_context);
     if (key in this.imageByContext_) {
-      return /** @type {HTMLVideoElement} */ this.imageByContext_[key];
+      return this.imageByContext_[key];
     } else if (goog.object.isEmpty(this.imageByContext_)) {
       image = this.image_;
     } else {
       image = /** @type {HTMLVideoElement} */ (this.image_.cloneNode(false));
     }
     this.imageByContext_[key] = image;
-    return /** @type {HTMLVideoElement} */ image;
+    return image;
   } else {
-    return /** @type {HTMLVideoElement} */ this.image_;
+    return this.image_;
   }
 };
 

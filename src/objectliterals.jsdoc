@@ -20,9 +20,9 @@
  *     information for each layer, with array indices being the same as in the
  *     passed `layers` array or in the layer collection as returned from
  *     `ol.Map#getLayers()` if no `layers` were provided.
- * @property {function(Object)|undefined} error Callback for unsuccessful
- *     queries. Note that queries with no matching features trigger the success
- *     callback, not the error callback.
+ * @property {function()|undefined} error Callback for unsuccessful queries.
+ *     Note that queries with no matching features trigger the success callback,
+ *     not the error callback.
  */
 
 /**
@@ -35,9 +35,9 @@
  *     each layer, with array indices being the same as in the passed `layers`
  *     array or in the layer collection as returned from `ol.Map#getLayers()` if
  *     no layers were provided.
- * @property {function(Object)|undefined} error Callback for unsuccessful
- *     queries. Note that queries with no matching features trigger the success
- *     callback, not the error callback.
+ * @property {function()|undefined} error Callback for unsuccessful queries.
+ *     Note that queries with no matching features trigger the success callback,
+ *     not the error callback.
  */
 
 /**
@@ -46,7 +46,7 @@
  * @property {ol.Collection|Array.<ol.control.Control>|undefined} controls
  *     Controls initially added to the map.
  * @property {ol.Collection|undefined} interactions Interactions.
- * @property {Array.<ol.layer.Layer>|ol.Collection|undefined} layers Layers.
+ * @property {Array.<ol.layer.LayerBase>|ol.Collection|undefined} layers Layers.
  * @property {ol.RendererHint|undefined} renderer Renderer.
  * @property {Array.<ol.RendererHint>|undefined} renderers Renderers.
  * @property {Element|string|undefined} target The container for the map.
@@ -306,6 +306,16 @@
  */
 
 /**
+ * @typedef {Object} ol.layer.LayerBaseOptions
+ * @property {number|undefined} brightness Brightness.
+ * @property {number|undefined} contrast Contrast.
+ * @property {number|undefined} hue Hue.
+ * @property {number|undefined} opacity Opacity.
+ * @property {number|undefined} saturation Saturation.
+ * @property {boolean|undefined} visible Visibility.
+ */
+
+/**
  * @typedef {Object} ol.layer.LayerOptions
  * @property {number|undefined} brightness Brightness.
  * @property {number|undefined} contrast Contrast.
@@ -314,6 +324,17 @@
  * @property {number|undefined} saturation Saturation.
  * @property {ol.source.Source} source Source for this layer.
  * @property {boolean|undefined} visible Visibility. Default is true (visible).
+ */
+
+/**
+ * @typedef {Object} ol.layer.LayerGroupOptions
+ * @property {number|undefined} brightness Brightness.
+ * @property {number|undefined} contrast Contrast.
+ * @property {number|undefined} hue Hue.
+ * @property {number|undefined} opacity Opacity.
+ * @property {number|undefined} saturation Saturation.
+ * @property {boolean|undefined} visible Visibility.
+ * @property {Array.<ol.layer.LayerBase>|ol.Collection|undefined} layers Child layers.
  */
 
 /**
@@ -450,6 +471,8 @@
  * @property {null|string|undefined} crossOrigin crossOrigin setting for image
  *     requests.
  * @property {ol.Extent|undefined} extent Extent.
+ * @property {ol.source.WMSGetFeatureInfoOptions|undefined}
+ *     getFeatureInfoOptions Options for GetFeatureInfo.
  * @property {Object.<string,*>} params WMS request parameters. At least a
  *     `LAYERS` param is required. `STYLES` is '' by default. `VERSION` is
  *     '1.3.0' by default. `WIDTH`, `HEIGHT`, `BBOX` and `CRS` (`SRS` for WMS
@@ -509,6 +532,8 @@
  * @property {null|string|undefined} crossOrigin crossOrigin setting for image
  *     requests.
  * @property {ol.Extent|undefined} extent Extent.
+ * @property {ol.source.WMSGetFeatureInfoOptions|undefined}
+ *     getFeatureInfoOptions Options for GetFeatureInfo.
  * @property {ol.tilegrid.TileGrid|undefined} tileGrid Tile grid.
  * @property {number|undefined} maxZoom Maximum zoom.
  * @property {ol.ProjectionLike} projection Projection.
@@ -542,6 +567,16 @@
  *    Point collections.
  * @property {ol.ProjectionLike} projection Projection.
  */
+
+
+/**
+ * @typedef {Object} ol.source.WMSGetFeatureInfoOptions
+ * @property {ol.source.WMSGetFeatureInfoMethod} method Method for requesting
+ *     GetFeatureInfo. Default is `ol.source.WMSGetFeatureInfoMethod.IFRAME`.
+ * @property {Object} params Params for the GetFeatureInfo request. Default is
+ *     `{'INFO_FORMAT': 'text/html'}`.
+ */
+
 
 /**
  * @typedef {Object} ol.source.WMTSOptions
