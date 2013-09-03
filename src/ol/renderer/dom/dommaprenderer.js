@@ -10,6 +10,7 @@ goog.require('ol.layer.TileLayer');
 goog.require('ol.renderer.Map');
 goog.require('ol.renderer.dom.ImageLayer');
 goog.require('ol.renderer.dom.TileLayer');
+goog.require('ol.renderer.dom.VideoTileLayer');
 
 
 
@@ -54,7 +55,7 @@ ol.renderer.dom.Map.prototype.createLayerRenderer = function(layer) {
   if (layer instanceof ol.layer.TileLayer) {
     layerRenderer = new ol.renderer.dom.TileLayer(this, layer);
   } else if (layer instanceof ol.layer.VideoTileLayer) {
-    layerRenderer = new ol.renderer.dom.TileLayer(this, layer);
+    layerRenderer = new ol.renderer.dom.VideoTileLayer(this, layer);
   } else if (layer instanceof ol.layer.ImageLayer) {
     layerRenderer = new ol.renderer.dom.ImageLayer(this, layer);
   } else {

@@ -16,7 +16,7 @@ ol.layer.VideoTileLayerProperty = {
 /**
  * @constructor
  * @extends {ol.layer.Layer}
- * @param {ol.layer.TileLayerOptions} options Tile layer options.
+ * @param {ol.layer.VideoTileLayerOptions} options Tile layer options.
  */
 ol.layer.VideoTileLayer = function(options) {
 

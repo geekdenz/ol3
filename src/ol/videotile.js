@@ -5,7 +5,6 @@ goog.require('goog.asserts');
 goog.require('goog.events');
 goog.require('goog.events.EventType');
 goog.require('goog.object');
-//goog.require('ol.ImageTile');
 goog.require('ol.Tile');
 goog.require('ol.TileCoord');
 goog.require('ol.TileState');
