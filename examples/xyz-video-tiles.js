@@ -68,8 +68,8 @@ function play() {
   }
 }
 var view = new ol.View2D({
-    center: [20000000,20001000],
-    zoom: 1,    
+    center: [20000000,60000000],
+    zoom: 0,    
     maxZoom: 6
   });
 var extent = [1000000, 4700000.0000001, 2200000, 6300000];
