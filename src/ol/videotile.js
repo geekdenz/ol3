@@ -1,15 +1,6 @@
 goog.provide('ol.VideoTile');
 
-goog.require('goog.array');
-goog.require('goog.asserts');
-goog.require('goog.events');
-goog.require('goog.events.EventType');
-goog.require('goog.object');
-goog.require('ol.Tile');
-goog.require('ol.TileCoord');
-goog.require('ol.TileState');
-
-
+goog.require('ol.ImageTile');
 
 /**
  * @constructor
@@ -56,52 +47,21 @@ ol.VideoTile = function(tileCoord, state, src, crossOrigin) {
   this.imageListenerKeys_ = null;
 
 };
-goog.inherits(ol.VideoTile, ol.Tile);
+
+goog.inherits(ol.VideoTile, ol.ImageTile);
 
 
+ol.VideoTile.prototype.getImage_ = ol.ImageTile.prototype.getImage;
 /**
  * @inheritDoc
  * @return {HTMLVideoElement}
  * @suppress {checkTypes}
  */
 ol.VideoTile.prototype.getImage = function(opt_context) {
-  if (goog.isDef(opt_context)) {
     var /** @type {HTMLVideoElement} */ image;
-    var key = goog.getUid(opt_context);
-    if (key in this.imageByContext_) {
-      return this.imageByContext_[key];
-    } else if (goog.object.isEmpty(this.imageByContext_)) {
-      image = this.image_;
-    } else {
-      image = /** @type {HTMLVideoElement} */ (this.image_.cloneNode(false));
-    }
-    this.imageByContext_[key] = image;
+    image = this.getImage_(opt_context);
     return image;
-  } else {
-    return this.image_;
-  }
 };
-
-
-/**
- * @inheritDoc
- */
-ol.VideoTile.prototype.getKey = function() {
-  return this.src_;
-};
-
-
-/**
- * Tracks loading or read errors.
- *
- * @private
- */
-ol.VideoTile.prototype.handleImageError_ = function() {
-  this.state = ol.TileState.ERROR;
-  this.unlistenImage_();
-  this.dispatchChangeEvent();
-};
-
 
 /**
  * Tracks successful image load.
@@ -129,27 +89,11 @@ ol.VideoTile.prototype.load = function() {
     this.imageListenerKeys_ = [
       goog.events.listenOnce(this.image_, goog.events.EventType.ERROR,
           this.handleImageError_, false, this),
-      /*
-      goog.events.listenOnce(this.image_, goog.events.EventType.LOAD,
-          this.handleImageLoad_, false, this)
-      */
       goog.events.listenOnce(this.image_, "loadedmetadata",
           this.handleImageLoad_, false, this)
     ];
     this.image_.src = this.src_;
   }
-};
-
-
-/**
- * Discards event handlers which listen for load completion or errors.
- *
- * @private
- */
-ol.VideoTile.prototype.unlistenImage_ = function() {
-  goog.asserts.assert(!goog.isNull(this.imageListenerKeys_));
-  goog.array.forEach(this.imageListenerKeys_, goog.events.unlistenByKey);
-  this.imageListenerKeys_ = null;
 };
 
 /**
