@@ -1,31 +1,7 @@
 goog.provide('ol.source.VideoTileSource');
 
-goog.require('goog.asserts');
-goog.require('ol.Attribution');
-goog.require('ol.Extent');
 goog.require('ol.VideoTile');
-goog.require('ol.Projection');
-goog.require('ol.Tile');
-goog.require('ol.TileCache');
-goog.require('ol.TileCoord');
-goog.require('ol.TileState');
-goog.require('ol.TileUrlFunction');
-goog.require('ol.TileUrlFunctionType');
-goog.require('ol.source.TileSource');
-goog.require('ol.tilegrid.TileGrid');
-
-
-/**
- * @typedef {{attributions: (Array.<ol.Attribution>|undefined),
- *            crossOrigin: (null|string|undefined),
- *            extent: (ol.Extent|undefined),
- *            logo: (string|undefined),
- *            opaque: (boolean|undefined),
- *            projection: ol.ProjectionLike,
- *            tileGrid: (ol.tilegrid.TileGrid|undefined),
- *            tileUrlFunction: (ol.TileUrlFunctionType|undefined)}}
- */
-ol.source.ImageTileOptions;
+goog.require('ol.source.ImageTileSource');
 
 
 
@@ -67,23 +43,7 @@ ol.source.VideoTileSource = function(options) {
   this.tileCache_ = new ol.TileCache();
 
 };
-goog.inherits(ol.source.VideoTileSource, ol.source.TileSource);
-
-
-/**
- * @inheritDoc
- */
-ol.source.VideoTileSource.prototype.canExpireCache = function() {
-  return this.tileCache_.canExpireCache();
-};
-
-
-/**
- * @inheritDoc
- */
-ol.source.VideoTileSource.prototype.expireCache = function(usedTiles) {
-  this.tileCache_.expireCache(usedTiles);
-};
+goog.inherits(ol.source.VideoTileSource, ol.source.ImageTileSource);
 
 
 /**
@@ -104,16 +64,5 @@ ol.source.VideoTileSource.prototype.getTile = function(z, x, y, projection) {
         this.crossOrigin_);
     this.tileCache_.set(tileCoordKey, tile);
     return tile;
-  }
-};
-
-
-/**
- * @inheritDoc
- */
-ol.source.VideoTileSource.prototype.useTile = function(z, x, y) {
-  var tileCoordKey = ol.TileCoord.getKeyZXY(z, x, y);
-  if (this.tileCache_.containsKey(tileCoordKey)) {
-    this.tileCache_.get(tileCoordKey);
   }
 };
