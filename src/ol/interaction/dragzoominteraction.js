@@ -88,11 +88,11 @@ ol.interaction.DragZoom.prototype.handleDragEnd =
 ol.interaction.DragZoom.prototype.handleDragStart =
     function(mapBrowserEvent) {
   var browserEvent = mapBrowserEvent.browserEvent;
-  if (browserEvent.isMouseActionButton() && this.condition_(browserEvent)) {
+  if (browserEvent.isMouseActionButton() && this.condition_(mapBrowserEvent)) {
     this.dragBox_ = new ol.control.DragBox({
-      map: mapBrowserEvent.map,
       startCoordinate: this.startCoordinate
     });
+    this.dragBox_.setMap(mapBrowserEvent.map);
     return true;
   } else {
     return false;

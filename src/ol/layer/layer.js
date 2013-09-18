@@ -4,14 +4,14 @@ goog.require('goog.asserts');
 goog.require('goog.events');
 goog.require('goog.events.EventType');
 goog.require('goog.object');
-goog.require('ol.layer.LayerBase');
+goog.require('ol.layer.Base');
 goog.require('ol.source.Source');
 
 
 
 /**
  * @constructor
- * @extends {ol.layer.LayerBase}
+ * @extends {ol.layer.Base}
  * @param {ol.layer.LayerOptions} options Layer options.
  */
 ol.layer.Layer = function(options) {
@@ -28,13 +28,16 @@ ol.layer.Layer = function(options) {
    */
   this.source_ = options.source;
 
+  goog.events.listen(this.source_, goog.events.EventType.CHANGE,
+      this.handleSourceChange_, false, this);
+
   if (!this.source_.isReady()) {
     goog.events.listenOnce(this.source_, goog.events.EventType.LOAD,
         this.handleSourceLoad_, false, this);
   }
 
 };
-goog.inherits(ol.layer.Layer, ol.layer.LayerBase);
+goog.inherits(ol.layer.Layer, ol.layer.Base);
 
 
 /**
@@ -75,6 +78,14 @@ ol.layer.Layer.prototype.getLayerStatesArray = function(opt_obj) {
  */
 ol.layer.Layer.prototype.getSource = function() {
   return this.source_;
+};
+
+
+/**
+ * @private
+ */
+ol.layer.Layer.prototype.handleSourceChange_ = function() {
+  this.dispatchChangeEvent();
 };
 
 

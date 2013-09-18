@@ -16,14 +16,9 @@ goog.require('ol.css');
 /**
  * Provides a button that when clicked fills up the full screen with the map.
  * When in full screen mode, a close button is shown to exit full screen mode.
+ * The [Fullscreen API](http://www.w3.org/TR/fullscreen/) is used to
+ * toggle the map in full screen mode.
  *
- * Example:
- *
- *     var map = new ol.Map({
- *       controls: ol.control.defaults({}, [
- *         new ol.control.FullScreen()
- *       ]),
- *       ...
  *
  * @constructor
  * @extends {ol.control.Control}
@@ -53,13 +48,12 @@ ol.control.FullScreen = function(opt_options) {
       this.handleFullScreenChange_, false, this);
 
   var element = goog.dom.createDom(goog.dom.TagName.DIV, {
-    'class': this.cssClassName_ + ' ' + ol.css.CLASS_UNSELECTABLE +
+    'class': this.cssClassName_ + ' ' + ol.css.CLASS_UNSELECTABLE + ' ' +
         (!goog.dom.fullscreen.isSupported() ? ol.css.CLASS_UNSUPPORTED : '')
   }, aElement);
 
   goog.base(this, {
     element: element,
-    map: options.map,
     target: options.target
   });
 
@@ -89,7 +83,9 @@ ol.control.FullScreen.prototype.handleClick_ = function(browserEvent) {
   if (goog.dom.fullscreen.isFullScreen()) {
     goog.dom.fullscreen.exitFullScreen();
   } else {
-    var element = map.getTarget();
+    var target = map.getTarget();
+    goog.asserts.assert(goog.isDefAndNotNull(target));
+    var element = goog.dom.getElement(target);
     goog.asserts.assert(goog.isDefAndNotNull(element));
     if (this.keys_) {
       goog.dom.fullscreen.requestFullScreenWithKeys(element);

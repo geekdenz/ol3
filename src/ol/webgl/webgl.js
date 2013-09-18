@@ -63,3 +63,4 @@ ol.webgl.SUPPORTED = (function() {
     return false;
   }
 })();
+goog.exportSymbol('ol.webgl.SUPPORTED', ol.webgl.SUPPORTED);
