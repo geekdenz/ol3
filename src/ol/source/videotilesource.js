@@ -21,8 +21,8 @@ goog.inherits(ol.source.VideoTileSource, ol.source.TileImage);
  */
 ol.source.VideoTileSource.prototype.getTile = function(z, x, y, projection) {
   var tileCoordKey = this.getKeyZXY(z, x, y);
-  if (this.tileCache_.containsKey(tileCoordKey)) {
-    return /** @type {!ol.Tile} */ (this.tileCache_.get(tileCoordKey));
+  if (this.getTileCache().containsKey(tileCoordKey)) {
+    return /** @type {!ol.Tile} */ (this.getTileCache().get(tileCoordKey));
   } else {
     goog.asserts.assert(projection);
     var tileCoord = new ol.TileCoord(z, x, y);
@@ -31,8 +31,8 @@ ol.source.VideoTileSource.prototype.getTile = function(z, x, y, projection) {
         tileCoord,
         goog.isDef(tileUrl) ? ol.TileState.IDLE : ol.TileState.EMPTY,
         goog.isDef(tileUrl) ? tileUrl : '',
-        this.crossOrigin_);
-    this.tileCache_.set(tileCoordKey, tile);
+        this.getCrossOrigin());
+    this.getTileCache().set(tileCoordKey, tile);
     return tile;
   }
 };

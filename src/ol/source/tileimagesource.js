@@ -129,3 +129,17 @@ ol.source.TileImage.prototype.useTile = function(z, x, y) {
     this.tileCache_.get(tileCoordKey);
   }
 };
+
+/**
+ * @return {ol.TileCache}
+ */
+ol.source.TileImage.prototype.getTileCache = function() {
+  return this.tileCache_;
+};
+
+/**
+ * @return {string|null}
+ */
+ol.source.TileImage.prototype.getCrossOrigin = function() {
+  return this.crossOrigin_;
+};
