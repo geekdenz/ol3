@@ -2,7 +2,7 @@ goog.require('ol.Map');
 //goog.require('ol.interaction.DragRotateAndZoom');
 goog.require('ol.RendererHints');
 goog.require('ol.View2D');
-goog.require('ol.layer.TileLayer');
+goog.require('ol.layer.Tile');
 goog.require('ol.source.DebugTileSource');
 //goog.require('ol.source.OSM');
 goog.require('ol.tilegrid.XYZ');
