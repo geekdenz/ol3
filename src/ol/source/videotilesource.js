@@ -1,49 +1,19 @@
 goog.provide('ol.source.VideoTileSource');
 
 goog.require('ol.VideoTile');
-goog.require('ol.source.ImageTileSource');
+goog.require('ol.source.TileImage');
 
 
 
 /**
  * @constructor
- * @extends {ol.source.TileSource}
- * @param {ol.source.ImageTileOptions} options Image tile options.
+ * @extends {ol.source.TileImage}
+ * @param {ol.source.TileImageOptions} options Image tile options.
  */
 ol.source.VideoTileSource = function(options) {
-
-  goog.base(this, {
-    attributions: options.attributions,
-    extent: options.extent,
-    logo: options.logo,
-    opaque: options.opaque,
-    projection: options.projection,
-    tileGrid: options.tileGrid
-  });
-
-  /**
-   * @protected
-   * @type {ol.TileUrlFunctionType}
-   */
-  this.tileUrlFunction = goog.isDef(options.tileUrlFunction) ?
-      options.tileUrlFunction :
-      ol.TileUrlFunction.nullTileUrlFunction;
-
-  /**
-   * @private
-   * @type {?string}
-   */
-  this.crossOrigin_ =
-      goog.isDef(options.crossOrigin) ? options.crossOrigin : null;
-
-  /**
-   * @private
-   * @type {ol.TileCache}
-   */
-  this.tileCache_ = new ol.TileCache();
-
+  return goog.base(this, options);
 };
-goog.inherits(ol.source.VideoTileSource, ol.source.ImageTileSource);
+goog.inherits(ol.source.VideoTileSource, ol.source.TileImage);
 
 
 /**

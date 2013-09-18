@@ -33,7 +33,7 @@ ol.ImageTile = function(tileCoord, state, src, crossOrigin) {
 
   /**
    * @private
-   * @type {Image}
+   * @type {Image|HTMLVideoElement}
    */
   this.image_ = new Image();
   if (!goog.isNull(crossOrigin)) {
@@ -42,7 +42,7 @@ ol.ImageTile = function(tileCoord, state, src, crossOrigin) {
 
   /**
    * @private
-   * @type {Object.<number, Image>}
+   * @type {Object.<number, Image>|Object.<number, HTMLVideoElement>}
    */
   this.imageByContext_ = {};
 
@@ -68,7 +68,7 @@ ol.ImageTile.prototype.getImage = function(opt_context) {
     } else if (goog.object.isEmpty(this.imageByContext_)) {
       image = this.image_;
     } else {
-      image = /** @type {Image} */ (this.image_.cloneNode(false));
+      image = /** @type {Image|HTMLVideoElement} */ (this.image_.cloneNode(false));
     }
     this.imageByContext_[key] = image;
     return image;

@@ -574,7 +574,7 @@
  *     getFeatureInfoOptions Options for GetFeatureInfo.
  * @property {ol.tilegrid.TileGrid|undefined} tileGrid Tile grid.
  * @property {number|undefined} maxZoom Maximum zoom.
- * @property {ol.ProjectionLike} projection Projection.
+ * @property {ol.proj.ProjectionLike} projection Projection.
  * @property {string|undefined} url WMS service url.
  * @property {Array.<string>|undefined} urls WMS service urls. Use this instead
  *     of `url` when the WMS supports multiple urls for GetMap requests.

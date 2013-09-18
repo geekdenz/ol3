@@ -1,6 +1,6 @@
 goog.provide('ol.layer.VideoTileLayer');
 
-goog.require('ol.layer.TileLayer');
+goog.require('ol.layer.Tile');
 goog.require('ol.source.VideoTileSource');
 
 
@@ -15,7 +15,7 @@ ol.layer.VideoTileLayerProperty = {
 
 /**
  * @constructor
- * @extends {ol.layer.Layer}
+ * @extends {ol.layer.Tile}
  * @param {ol.layer.VideoTileLayerOptions} options Tile layer options.
  */
 ol.layer.VideoTileLayer = function(options) {
@@ -26,7 +26,7 @@ ol.layer.VideoTileLayer = function(options) {
       goog.isDef(options.preload) ? options.preload : 0);
 
 };
-goog.inherits(ol.layer.VideoTileLayer, ol.layer.TileLayer);
+goog.inherits(ol.layer.VideoTileLayer, ol.layer.Tile);
 
 
 /**

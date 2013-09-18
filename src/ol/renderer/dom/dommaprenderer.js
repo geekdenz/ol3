@@ -56,7 +56,7 @@ ol.renderer.dom.Map.prototype.createLayerRenderer = function(layer) {
     layerRenderer = new ol.renderer.dom.TileLayer(this, layer);
   } else if (layer instanceof ol.layer.VideoTileLayer) {
     layerRenderer = new ol.renderer.dom.VideoTileLayer(this, layer);
-  } else if (layer instanceof ol.layer.ImageLayer) {
+  } else if (layer instanceof ol.layer.Image) {
     layerRenderer = new ol.renderer.dom.ImageLayer(this, layer);
   } else {
     goog.asserts.fail();
