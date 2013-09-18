@@ -95,9 +95,11 @@ ol.expr.lib = {};
  * @enum {string}
  */
 ol.expr.functions = {
+  CONCAT: 'concat',
   EXTENT: 'extent',
   FID: 'fid',
   GEOMETRY_TYPE: 'geometryType',
+  RENDER_INTENT: 'renderIntent',
   INTERSECTS: 'intersects',
   CONTAINS: 'contains',
   DWITHIN: 'dwithin',
@@ -109,24 +111,40 @@ ol.expr.functions = {
 
 
 /**
+ * Concatenate strings.  All provided arguments will be cast to string and
+ * concatenated.
+ * @param {...string} var_args Strings to concatenate.
+ * @return {string} All input arguments concatenated as strings.
+ * @this {ol.Feature}
+ */
+ol.expr.lib[ol.expr.functions.CONCAT] = function(var_args) {
+  var str = '';
+  for (var i = 0, ii = arguments.length; i < ii; ++i) {
+    str += String(arguments[i]);
+  }
+  return str;
+};
+
+
+/**
  * Determine if a feature's extent intersects the provided extent.
  * @param {number} minX Minimum x-coordinate value.
- * @param {number} maxX Maximum x-coordinate value.
  * @param {number} minY Minimum y-coordinate value.
+ * @param {number} maxX Maximum x-coordinate value.
  * @param {number} maxY Maximum y-coordinate value.
  * @param {string=} opt_projection Projection of the extent.
  * @param {string=} opt_attribute Name of the geometry attribute to use.
  * @return {boolean} The provided extent intersects the feature's extent.
  * @this {ol.Feature}
  */
-ol.expr.lib[ol.expr.functions.EXTENT] = function(minX, maxX, minY, maxY,
+ol.expr.lib[ol.expr.functions.EXTENT] = function(minX, minY, maxX, maxY,
     opt_projection, opt_attribute) {
   var intersects = false;
   var geometry = goog.isDef(opt_attribute) ?
       this.get(opt_attribute) : this.getGeometry();
   if (geometry) {
     intersects = ol.extent.intersects(geometry.getBounds(),
-        [minX, maxX, minY, maxY]);
+        [minX, minY, maxX, maxY]);
   }
   return intersects;
 };
@@ -232,6 +250,17 @@ ol.expr.lib[ol.expr.functions.GEOMETRY_TYPE] = function(type) {
     same = geometry.getType() === type;
   }
   return same;
+};
+
+
+/**
+ * Determine if a feature's renderIntent matches the given one.
+ * @param {string} renderIntent Render intent.
+ * @return {boolean} The feature's renderIntent matches the given one.
+ * @this {ol.Feature}
+ */
+ol.expr.lib[ol.expr.functions.RENDER_INTENT] = function(renderIntent) {
+  return this.renderIntent == renderIntent;
 };
 
 

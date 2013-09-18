@@ -87,7 +87,7 @@ ol.interaction.DragPan.prototype.handleDragEnd = function(mapBrowserEvent) {
     var distance = this.kinetic_.getDistance();
     var angle = this.kinetic_.getAngle();
     this.kineticPreRenderFn_ = this.kinetic_.pan(view2DState.center);
-    map.addPreRenderFunction(this.kineticPreRenderFn_);
+    map.beforeRender(this.kineticPreRenderFn_);
 
     var centerpx = map.getPixelFromCoordinate(view2DState.center);
     var dest = map.getCoordinateFromPixel([
@@ -105,7 +105,7 @@ ol.interaction.DragPan.prototype.handleDragEnd = function(mapBrowserEvent) {
  */
 ol.interaction.DragPan.prototype.handleDragStart = function(mapBrowserEvent) {
   var browserEvent = mapBrowserEvent.browserEvent;
-  if (browserEvent.isMouseActionButton() && this.condition_(browserEvent)) {
+  if (browserEvent.isMouseActionButton() && this.condition_(mapBrowserEvent)) {
     if (this.kinetic_) {
       this.kinetic_.begin();
       this.kinetic_.update(browserEvent.clientX, browserEvent.clientY);

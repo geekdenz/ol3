@@ -1,17 +1,17 @@
 goog.provide('ol.geom.Point');
 
 goog.require('goog.asserts');
+goog.require('ol.Coordinate');
 goog.require('ol.geom.Geometry');
 goog.require('ol.geom.GeometryType');
 goog.require('ol.geom.SharedVertices');
-goog.require('ol.geom.Vertex');
 
 
 
 /**
  * @constructor
  * @extends {ol.geom.Geometry}
- * @param {ol.geom.Vertex} coordinates Coordinates array (e.g. [x, y]).
+ * @param {ol.Coordinate} coordinates Coordinates array (e.g. [x, y]).
  * @param {ol.geom.SharedVertices=} opt_shared Shared vertices.
  */
 ol.geom.Point = function(coordinates, opt_shared) {
@@ -68,7 +68,7 @@ ol.geom.Point.prototype.getBounds = function() {
   if (goog.isNull(this.bounds_)) {
     var x = this.get(0),
         y = this.get(1);
-    this.bounds_ = [x, x, y, y];
+    this.bounds_ = [x, y, x, y];
   }
   return this.bounds_;
 };
@@ -76,7 +76,7 @@ ol.geom.Point.prototype.getBounds = function() {
 
 /**
  * @inheritDoc
- * @return {ol.geom.Vertex} Coordinates array.
+ * @return {ol.Coordinate} Coordinates array.
  */
 ol.geom.Point.prototype.getCoordinates = function() {
   var coordinates = new Array(this.dimension);
