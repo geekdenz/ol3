@@ -1,13 +1,12 @@
+goog.require('ol.control');
 goog.require('ol.control.FullScreen');
-goog.require('ol.control.defaults');
 goog.require('ol.Map');
 goog.require('ol.RendererHints');
 goog.require('ol.View2D');
-goog.require('ol.layer.TileLayer');
+goog.require('ol.layer.Tile');
 goog.require('ol.layer.VideoTileLayer');
-goog.require('ol.source.DebugTileSource');
 goog.require('ol.tilegrid.XYZ');
-goog.require('ol.source.ImageTileSource');
+goog.require('ol.source.TileImage');
 goog.require('ol.source.VideoTileSource');
 
 goog.require('goog.dom');
@@ -73,7 +72,7 @@ var view = new ol.View2D({
     maxZoom: 6
   });
 var extent = [1000000, 4700000.0000001, 2200000, 6300000];
-var source = new ol.source.ImageTileSource({
+var source = new ol.source.TileImage({
       tileGrid: new ol.tilegrid.XYZ({
         //origin: [1000000, 4700000.0000001],
         //origin: [-ol.proj.EPSG3857.HALF_SIZE, ol.proj.EPSG3857.HALF_SIZE],

@@ -20,7 +20,7 @@ goog.inherits(ol.source.VideoTileSource, ol.source.TileImage);
  * @inheritDoc
  */
 ol.source.VideoTileSource.prototype.getTile = function(z, x, y, projection) {
-  var tileCoordKey = ol.TileCoord.getKeyZXY(z, x, y);
+  var tileCoordKey = this.getKeyZXY(z, x, y);
   if (this.tileCache_.containsKey(tileCoordKey)) {
     return /** @type {!ol.Tile} */ (this.tileCache_.get(tileCoordKey));
   } else {
@@ -36,3 +36,5 @@ ol.source.VideoTileSource.prototype.getTile = function(z, x, y, projection) {
     return tile;
   }
 };
+
+
