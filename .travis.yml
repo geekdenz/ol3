@@ -1,13 +1,24 @@
+language: python
+sudo: false
+cache:
+  directories:
+    - node_modules
+env:
+  - DISPLAY=:99.0
+
 before_install:
-  - "sudo pip install http://closure-linter.googlecode.com/files/closure_linter-latest.tar.gz"
-  - "sudo pip install regex"
-  - "git clone --depth=50 https://github.com/jsdoc3/jsdoc build/jsdoc"
-  - "git clone https://code.google.com/p/glsl-unit/ build/glsl-unit"
+  - "npm install -g npm && npm install"
 
 before_script:
-  - "./build.py plovr"
-  - "./build.py serve-integration-test &"
   - "rm src/ol/renderer/webgl/*shader.js"
-  - "sleep 3"
+  - "sh -e /etc/init.d/xvfb start"
 
-script: "./build.py JSDOC=build/jsdoc/jsdoc integration-test"
+script: "make ci"
+
+after_success:
+  - "make test-coverage"
+  - "cat coverage/lcov.info | ./node_modules/.bin/coveralls"
+
+branches:
+  only:
+    - master

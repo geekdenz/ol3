@@ -1,14 +1,10 @@
 // FIXME should listen on appropriate pane, once it is defined
-// FIXME works for View2D only
 
 goog.provide('ol.control.MousePosition');
 
-goog.require('goog.array');
 goog.require('goog.dom');
-goog.require('goog.dom.TagName');
 goog.require('goog.events');
 goog.require('goog.events.EventType');
-goog.require('goog.style');
 goog.require('ol.CoordinateFormatType');
 goog.require('ol.Object');
 goog.require('ol.Pixel');
@@ -29,28 +25,32 @@ ol.control.MousePositionProperty = {
 
 
 /**
- * Create a new control to show the position of the mouse in the map's
- * projection (or any other supplied projection). By default the control is
- * shown in the top right corner of the map but this can be changed by using
- * a css selector .ol-mouse-position.
+ * @classdesc
+ * A control to show the 2D coordinates of the mouse cursor. By default, these
+ * are in the view projection, but can be in any supported projection.
+ * By default the control is shown in the top right corner of the map, but this
+ * can be changed by using the css selector `.ol-mouse-position`.
  *
  * @constructor
  * @extends {ol.control.Control}
- * @param {ol.control.MousePositionOptions=} opt_options Mouse position options.
+ * @param {olx.control.MousePositionOptions=} opt_options Mouse position
+ *     options.
+ * @api stable
  */
 ol.control.MousePosition = function(opt_options) {
 
-  var options = goog.isDef(opt_options) ? opt_options : {};
+  var options = opt_options ? opt_options : {};
 
-  var className = goog.isDef(options.className) ?
-      options.className : 'ol-mouse-position';
+  var className = options.className ? options.className : 'ol-mouse-position';
 
-  var element = goog.dom.createDom(goog.dom.TagName.DIV, {
-    'class': className
-  });
+  var element = goog.dom.createDom('DIV', className);
+
+  var render = options.render ?
+      options.render : ol.control.MousePosition.render;
 
   goog.base(this, {
     element: element,
+    render: render,
     target: options.target
   });
 
@@ -58,10 +58,10 @@ ol.control.MousePosition = function(opt_options) {
       ol.Object.getChangeEventType(ol.control.MousePositionProperty.PROJECTION),
       this.handleProjectionChanged_, false, this);
 
-  if (goog.isDef(options.coordinateFormat)) {
+  if (options.coordinateFormat) {
     this.setCoordinateFormat(options.coordinateFormat);
   }
-  if (goog.isDef(options.projection)) {
+  if (options.projection) {
     this.setProjection(ol.proj.get(options.projection));
   }
 
@@ -69,8 +69,7 @@ ol.control.MousePosition = function(opt_options) {
    * @private
    * @type {string}
    */
-  this.undefinedHTML_ = goog.isDef(options.undefinedHTML) ?
-      options.undefinedHTML : '';
+  this.undefinedHTML_ = options.undefinedHTML ? options.undefinedHTML : '';
 
   /**
    * @private
@@ -101,15 +100,18 @@ goog.inherits(ol.control.MousePosition, ol.control.Control);
 
 
 /**
- * @inheritDoc
+ * Update the mouseposition element.
+ * @param {ol.MapEvent} mapEvent Map event.
+ * @this {ol.control.MousePosition}
+ * @api
  */
-ol.control.MousePosition.prototype.handleMapPostrender = function(mapEvent) {
+ol.control.MousePosition.render = function(mapEvent) {
   var frameState = mapEvent.frameState;
-  if (goog.isNull(frameState)) {
+  if (!frameState) {
     this.mapProjection_ = null;
   } else {
-    if (this.mapProjection_ != frameState.view2DState.projection) {
-      this.mapProjection_ = frameState.view2DState.projection;
+    if (this.mapProjection_ != frameState.viewState.projection) {
+      this.mapProjection_ = frameState.viewState.projection;
       this.transform_ = null;
     }
   }
@@ -126,29 +128,30 @@ ol.control.MousePosition.prototype.handleProjectionChanged_ = function() {
 
 
 /**
- * @return {ol.CoordinateFormatType|undefined} projection.
+ * Return the coordinate format type used to render the current position or
+ * undefined.
+ * @return {ol.CoordinateFormatType|undefined} The format to render the current
+ *     position in.
+ * @observable
+ * @api stable
  */
 ol.control.MousePosition.prototype.getCoordinateFormat = function() {
   return /** @type {ol.CoordinateFormatType|undefined} */ (
       this.get(ol.control.MousePositionProperty.COORDINATE_FORMAT));
 };
-goog.exportProperty(
-    ol.control.MousePosition.prototype,
-    'getCoordinateFormat',
-    ol.control.MousePosition.prototype.getCoordinateFormat);
 
 
 /**
- * @return {ol.proj.Projection|undefined} projection.
+ * Return the projection that is used to report the mouse position.
+ * @return {ol.proj.Projection|undefined} The projection to report mouse
+ *     position in.
+ * @observable
+ * @api stable
  */
 ol.control.MousePosition.prototype.getProjection = function() {
   return /** @type {ol.proj.Projection|undefined} */ (
       this.get(ol.control.MousePositionProperty.PROJECTION));
 };
-goog.exportProperty(
-    ol.control.MousePosition.prototype,
-    'getProjection',
-    ol.control.MousePosition.prototype.getProjection);
 
 
 /**
@@ -157,9 +160,7 @@ goog.exportProperty(
  */
 ol.control.MousePosition.prototype.handleMouseMove = function(browserEvent) {
   var map = this.getMap();
-  var eventPosition = goog.style.getRelativePosition(
-      browserEvent, map.getViewport());
-  this.lastMouseMovePixel_ = [eventPosition.x, eventPosition.y];
+  this.lastMouseMovePixel_ = map.getEventPixel(browserEvent.getBrowserEvent());
   this.updateHTML_(this.lastMouseMovePixel_);
 };
 
@@ -176,10 +177,11 @@ ol.control.MousePosition.prototype.handleMouseOut = function(browserEvent) {
 
 /**
  * @inheritDoc
+ * @api stable
  */
 ol.control.MousePosition.prototype.setMap = function(map) {
   goog.base(this, 'setMap', map);
-  if (!goog.isNull(map)) {
+  if (map) {
     var viewport = map.getViewport();
     this.listenerKeys.push(
         goog.events.listen(viewport, goog.events.EventType.MOUSEMOVE,
@@ -192,27 +194,27 @@ ol.control.MousePosition.prototype.setMap = function(map) {
 
 
 /**
- * @param {ol.CoordinateFormatType} format Coordinate format.
+ * Set the coordinate format type used to render the current position.
+ * @param {ol.CoordinateFormatType} format The format to render the current
+ *     position in.
+ * @observable
+ * @api stable
  */
 ol.control.MousePosition.prototype.setCoordinateFormat = function(format) {
   this.set(ol.control.MousePositionProperty.COORDINATE_FORMAT, format);
 };
-goog.exportProperty(
-    ol.control.MousePosition.prototype,
-    'setCoordinateFormat',
-    ol.control.MousePosition.prototype.setCoordinateFormat);
 
 
 /**
- * @param {ol.proj.Projection} projection Projection.
+ * Set the projection that is used to report the mouse position.
+ * @param {ol.proj.Projection} projection The projection to report mouse
+ *     position in.
+ * @observable
+ * @api stable
  */
 ol.control.MousePosition.prototype.setProjection = function(projection) {
   this.set(ol.control.MousePositionProperty.PROJECTION, projection);
 };
-goog.exportProperty(
-    ol.control.MousePosition.prototype,
-    'setProjection',
-    ol.control.MousePosition.prototype.setProjection);
 
 
 /**
@@ -221,10 +223,10 @@ goog.exportProperty(
  */
 ol.control.MousePosition.prototype.updateHTML_ = function(pixel) {
   var html = this.undefinedHTML_;
-  if (!goog.isNull(pixel) && !goog.isNull(this.mapProjection_)) {
-    if (goog.isNull(this.transform_)) {
+  if (pixel && this.mapProjection_) {
+    if (!this.transform_) {
       var projection = this.getProjection();
-      if (goog.isDef(projection)) {
+      if (projection) {
         this.transform_ = ol.proj.getTransformFromProjections(
             this.mapProjection_, projection);
       } else {
@@ -233,17 +235,17 @@ ol.control.MousePosition.prototype.updateHTML_ = function(pixel) {
     }
     var map = this.getMap();
     var coordinate = map.getCoordinateFromPixel(pixel);
-    if (!goog.isNull(coordinate)) {
+    if (coordinate) {
       this.transform_(coordinate, coordinate);
       var coordinateFormat = this.getCoordinateFormat();
-      if (goog.isDef(coordinateFormat)) {
+      if (coordinateFormat) {
         html = coordinateFormat(coordinate);
       } else {
         html = coordinate.toString();
       }
     }
   }
-  if (!goog.isDef(this.renderedHTML_) || html != this.renderedHTML_) {
+  if (!this.renderedHTML_ || html != this.renderedHTML_) {
     this.element.innerHTML = html;
     this.renderedHTML_ = html;
   }

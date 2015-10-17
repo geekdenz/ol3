@@ -78,23 +78,29 @@ ol.source.StamenProviderConfig = {
 
 
 /**
+ * @classdesc
+ * Layer source for the Stamen tile server.
+ *
  * @constructor
  * @extends {ol.source.XYZ}
- * @param {ol.source.StamenOptions} options Stamen options.
+ * @param {olx.source.StamenOptions} options Stamen options.
+ * @api stable
  */
 ol.source.Stamen = function(options) {
 
   var i = options.layer.indexOf('-');
   var provider = i == -1 ? options.layer : options.layer.slice(0, i);
-  goog.asserts.assert(provider in ol.source.StamenProviderConfig);
+  goog.asserts.assert(provider in ol.source.StamenProviderConfig,
+      'known provider configured');
   var providerConfig = ol.source.StamenProviderConfig[provider];
 
-  goog.asserts.assert(options.layer in ol.source.StamenLayerConfig);
+  goog.asserts.assert(options.layer in ol.source.StamenLayerConfig,
+      'known layer configured');
   var layerConfig = ol.source.StamenLayerConfig[options.layer];
 
-  var url = goog.isDef(options.url) ? options.url :
-      'http://{a-d}.tile.stamen.com/' + options.layer + '/{z}/{x}/{y}.' +
-      layerConfig.extension;
+  var url = options.url !== undefined ? options.url :
+      'https://stamen-tiles-{a-d}.a.ssl.fastly.net/' + options.layer +
+      '/{z}/{x}/{y}.' + layerConfig.extension;
 
   goog.base(this, {
     attributions: ol.source.Stamen.ATTRIBUTIONS,
@@ -103,6 +109,8 @@ ol.source.Stamen = function(options) {
     // FIXME uncomment the following when tilegrid supports minZoom
     //minZoom: providerConfig.minZoom,
     opaque: layerConfig.opaque,
+    reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+    tileLoadFunction: options.tileLoadFunction,
     url: url
   });
 
@@ -111,7 +119,8 @@ goog.inherits(ol.source.Stamen, ol.source.XYZ);
 
 
 /**
- * @const {Array.<ol.Attribution>}
+ * @const
+ * @type {Array.<ol.Attribution>}
  */
 ol.source.Stamen.ATTRIBUTIONS = [
   new ol.Attribution({
@@ -119,5 +128,5 @@ ol.source.Stamen.ATTRIBUTIONS = [
         'under <a href="http://creativecommons.org/licenses/by/3.0/">CC BY' +
         ' 3.0</a>.'
   }),
-  ol.source.OSM.DATA_ATTRIBUTION
+  ol.source.OSM.ATTRIBUTION
 ];

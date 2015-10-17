@@ -1,152 +1,329 @@
 goog.provide('ol.Feature');
+goog.provide('ol.FeatureStyleFunction');
 
+goog.require('goog.asserts');
+goog.require('goog.events');
+goog.require('goog.events.EventType');
+goog.require('ol');
 goog.require('ol.Object');
 goog.require('ol.geom.Geometry');
-goog.require('ol.layer.VectorLayerRenderIntent');
+goog.require('ol.style.Style');
 
 
 
 /**
- * Create a new feature. A feature is the base entity for vectors and has
- * attributes, including normally a geometry attribute.
+ * @classdesc
+ * A vector object for geographic features with a geometry and other
+ * attribute properties, similar to the features in vector file formats like
+ * GeoJSON.
  *
- * Example:
+ * Features can be styled individually with `setStyle`; otherwise they use the
+ * style of their vector layer.
  *
- *     var feature = new ol.Feature({'foo': 'bar'});
- *     feature.setGeometry(new ol.geom.Point([100, 500]));
+ * Note that attribute properties are set as {@link ol.Object} properties on
+ * the feature object, so they are observable, and have get/set accessors.
+ *
+ * Typically, a feature has a single geometry property. You can set the
+ * geometry using the `setGeometry` method and get it with `getGeometry`.
+ * It is possible to store more than one geometry on a feature using attribute
+ * properties. By default, the geometry used for rendering is identified by
+ * the property name `geometry`. If you want to use another geometry property
+ * for rendering, use the `setGeometryName` method to change the attribute
+ * property associated with the geometry for the feature.  For example:
+ *
+ * ```js
+ * var feature = new ol.Feature({
+ *   geometry: new ol.geom.Polygon(polyCoords),
+ *   labelPoint: new ol.geom.Point(labelCoords),
+ *   name: 'My Polygon'
+ * });
+ *
+ * // get the polygon geometry
+ * var poly = feature.getGeometry();
+ *
+ * // Render the feature as a point using the coordinates from labelPoint
+ * feature.setGeometryName('labelPoint');
+ *
+ * // get the point geometry
+ * var point = feature.getGeometry();
+ * ```
  *
  * @constructor
  * @extends {ol.Object}
- * @param {Object.<string, *>=} opt_values Attributes.
+ * @param {ol.geom.Geometry|Object.<string, *>=} opt_geometryOrProperties
+ *     You may pass a Geometry object directly, or an object literal
+ *     containing properties.  If you pass an object literal, you may
+ *     include a Geometry associated with a `geometry` key.
+ * @api stable
  */
-ol.Feature = function(opt_values) {
+ol.Feature = function(opt_geometryOrProperties) {
 
-  goog.base(this, opt_values);
+  goog.base(this);
 
   /**
-   * @type {string|undefined}
+   * @private
+   * @type {number|string|undefined}
+   */
+  this.id_ = undefined;
+
+  /**
+   * @type {string}
    * @private
    */
-  this.featureId_;
+  this.geometryName_ = 'geometry';
 
   /**
-   * @type {string|undefined}
+   * User provided style.
    * @private
+   * @type {ol.style.Style|Array.<ol.style.Style>|
+   *     ol.FeatureStyleFunction}
    */
-  this.geometryName_;
+  this.style_ = null;
 
   /**
-   * The render intent for this feature.
-   * @type {ol.layer.VectorLayerRenderIntent|string}
-   */
-  this.renderIntent = ol.layer.VectorLayerRenderIntent.DEFAULT;
-
-  /**
-   * @type {Array.<ol.style.Symbolizer>}
    * @private
+   * @type {ol.FeatureStyleFunction|undefined}
    */
-  this.symbolizers_ = null;
+  this.styleFunction_ = undefined;
 
+  /**
+   * @private
+   * @type {goog.events.Key}
+   */
+  this.geometryChangeKey_ = null;
+
+  goog.events.listen(
+      this, ol.Object.getChangeEventType(this.geometryName_),
+      this.handleGeometryChanged_, false, this);
+
+  if (opt_geometryOrProperties !== undefined) {
+    if (opt_geometryOrProperties instanceof ol.geom.Geometry ||
+        !opt_geometryOrProperties) {
+      var geometry = /** @type {ol.geom.Geometry} */ (opt_geometryOrProperties);
+      this.setGeometry(geometry);
+    } else {
+      goog.asserts.assert(goog.isObject(opt_geometryOrProperties),
+          'opt_geometryOrProperties should be an Object');
+      var properties = /** @type {Object.<string, *>} */
+          (opt_geometryOrProperties);
+      this.setProperties(properties);
+    }
+  }
 };
 goog.inherits(ol.Feature, ol.Object);
 
 
 /**
- * Gets a copy of the attributes of this feature.
- * @return {Object.<string, *>} Attributes object.
+ * Clone this feature. If the original feature has a geometry it
+ * is also cloned. The feature id is not set in the clone.
+ * @return {ol.Feature} The clone.
+ * @api stable
  */
-ol.Feature.prototype.getAttributes = function() {
-  var keys = this.getKeys(),
-      len = keys.length,
-      attributes = {},
-      i, key;
-  for (i = 0; i < len; ++ i) {
-    key = keys[i];
-    attributes[key] = this.get(key);
+ol.Feature.prototype.clone = function() {
+  var clone = new ol.Feature(this.getProperties());
+  clone.setGeometryName(this.getGeometryName());
+  var geometry = this.getGeometry();
+  if (geometry) {
+    clone.setGeometry(geometry.clone());
   }
-  return attributes;
+  var style = this.getStyle();
+  if (style) {
+    clone.setStyle(style);
+  }
+  return clone;
 };
 
 
 /**
- * Returns the feature's commonly used identifier. This identifier is usually
- * the unique id in the source store.
- *
- * @return {string|undefined} The feature's identifier.
- */
-ol.Feature.prototype.getFeatureId = function() {
-  return this.featureId_;
-};
-
-
-/**
- * Get the geometry associated with this feature.
- * @return {ol.geom.Geometry} The geometry (or null if none).
+ * Get the feature's default geometry.  A feature may have any number of named
+ * geometries.  The "default" geometry (the one that is rendered by default) is
+ * set when calling {@link ol.Feature#setGeometry}.
+ * @return {ol.geom.Geometry|undefined} The default geometry for the feature.
+ * @api stable
+ * @observable
  */
 ol.Feature.prototype.getGeometry = function() {
-  return goog.isDef(this.geometryName_) ?
-      /** @type {ol.geom.Geometry} */ (this.get(this.geometryName_)) :
-      null;
+  return /** @type {ol.geom.Geometry|undefined} */ (
+      this.get(this.geometryName_));
 };
 
 
 /**
- * Get any symbolizers set directly on the feature.
- * @return {Array.<ol.style.Symbolizer>} Symbolizers (or null if none).
+ * Get the feature identifier.  This is a stable identifier for the feature and
+ * is either set when reading data from a remote source or set explicitly by
+ * calling {@link ol.Feature#setId}.
+ * @return {number|string|undefined} Id.
+ * @api stable
+ * @observable
  */
-ol.Feature.prototype.getSymbolizers = function() {
-  return this.symbolizers_;
+ol.Feature.prototype.getId = function() {
+  return this.id_;
 };
 
 
 /**
- * @inheritDoc
- * @param {string} key Key.
- * @param {*} value Value.
+ * Get the name of the feature's default geometry.  By default, the default
+ * geometry is named `geometry`.
+ * @return {string} Get the property name associated with the default geometry
+ *     for this feature.
+ * @api stable
  */
-ol.Feature.prototype.set = function(key, value) {
-  if (!goog.isDef(this.geometryName_) && (value instanceof ol.geom.Geometry)) {
-    this.geometryName_ = key;
+ol.Feature.prototype.getGeometryName = function() {
+  return this.geometryName_;
+};
+
+
+/**
+ * Get the feature's style.  This return for this method depends on what was
+ * provided to the {@link ol.Feature#setStyle} method.
+ * @return {ol.style.Style|Array.<ol.style.Style>|
+ *     ol.FeatureStyleFunction} The feature style.
+ * @api stable
+ * @observable
+ */
+ol.Feature.prototype.getStyle = function() {
+  return this.style_;
+};
+
+
+/**
+ * Get the feature's style function.
+ * @return {ol.FeatureStyleFunction|undefined} Return a function
+ * representing the current style of this feature.
+ * @api stable
+ */
+ol.Feature.prototype.getStyleFunction = function() {
+  return this.styleFunction_;
+};
+
+
+/**
+ * @private
+ */
+ol.Feature.prototype.handleGeometryChange_ = function() {
+  this.changed();
+};
+
+
+/**
+ * @private
+ */
+ol.Feature.prototype.handleGeometryChanged_ = function() {
+  if (this.geometryChangeKey_) {
+    goog.events.unlistenByKey(this.geometryChangeKey_);
+    this.geometryChangeKey_ = null;
   }
-  goog.base(this, 'set', key, value);
+  var geometry = this.getGeometry();
+  if (geometry) {
+    this.geometryChangeKey_ = goog.events.listen(geometry,
+        goog.events.EventType.CHANGE, this.handleGeometryChange_, false, this);
+  }
+  this.changed();
 };
 
 
 /**
- * Set the feature's commonly used identifier. This identifier is usually the
- * unique id in the source store.
- *
- * @param {string|undefined} featureId The feature's identifier.
- */
-ol.Feature.prototype.setFeatureId = function(featureId) {
-  this.featureId_ = featureId;
-};
-
-
-/**
- * Set the geometry to be associated with this feature after its creation.
- * @param {ol.geom.Geometry} geometry The geometry.
+ * Set the default geometry for the feature.  This will update the property
+ * with the name returned by {@link ol.Feature#getGeometryName}.
+ * @param {ol.geom.Geometry|undefined} geometry The new geometry.
+ * @api stable
+ * @observable
  */
 ol.Feature.prototype.setGeometry = function(geometry) {
-  if (!goog.isDef(this.geometryName_)) {
-    this.geometryName_ = ol.Feature.DEFAULT_GEOMETRY;
-  }
   this.set(this.geometryName_, geometry);
 };
 
 
 /**
- * Set the symbolizers to be used for this feature.
- * @param {Array.<ol.style.Symbolizer>} symbolizers Symbolizers for this
- *     feature. If set, these take precedence over layer style.
+ * Set the style for the feature.  This can be a single style object, an array
+ * of styles, or a function that takes a resolution and returns an array of
+ * styles. If it is `null` the feature has no style (a `null` style).
+ * @param {ol.style.Style|Array.<ol.style.Style>|
+ *     ol.FeatureStyleFunction} style Style for this feature.
+ * @api stable
+ * @observable
  */
-ol.Feature.prototype.setSymbolizers = function(symbolizers) {
-  this.symbolizers_ = symbolizers;
+ol.Feature.prototype.setStyle = function(style) {
+  this.style_ = style;
+  this.styleFunction_ = !style ?
+      undefined : ol.Feature.createStyleFunction(style);
+  this.changed();
 };
 
 
 /**
- * @const
- * @type {string}
+ * Set the feature id.  The feature id is considered stable and may be used when
+ * requesting features or comparing identifiers returned from a remote source.
+ * The feature id can be used with the {@link ol.source.Vector#getFeatureById}
+ * method.
+ * @param {number|string|undefined} id The feature id.
+ * @api stable
+ * @observable
  */
-ol.Feature.DEFAULT_GEOMETRY = 'geometry';
+ol.Feature.prototype.setId = function(id) {
+  this.id_ = id;
+  this.changed();
+};
+
+
+/**
+ * Set the property name to be used when getting the feature's default geometry.
+ * When calling {@link ol.Feature#getGeometry}, the value of the property with
+ * this name will be returned.
+ * @param {string} name The property name of the default geometry.
+ * @api stable
+ */
+ol.Feature.prototype.setGeometryName = function(name) {
+  goog.events.unlisten(
+      this, ol.Object.getChangeEventType(this.geometryName_),
+      this.handleGeometryChanged_, false, this);
+  this.geometryName_ = name;
+  goog.events.listen(
+      this, ol.Object.getChangeEventType(this.geometryName_),
+      this.handleGeometryChanged_, false, this);
+  this.handleGeometryChanged_();
+};
+
+
+/**
+ * A function that returns an array of {@link ol.style.Style styles} given a
+ * resolution. The `this` keyword inside the function references the
+ * {@link ol.Feature} to be styled.
+ *
+ * @typedef {function(this: ol.Feature, number): Array.<ol.style.Style>}
+ * @api stable
+ */
+ol.FeatureStyleFunction;
+
+
+/**
+ * Convert the provided object into a feature style function.  Functions passed
+ * through unchanged.  Arrays of ol.style.Style or single style objects wrapped
+ * in a new feature style function.
+ * @param {ol.FeatureStyleFunction|!Array.<ol.style.Style>|!ol.style.Style} obj
+ *     A feature style function, a single style, or an array of styles.
+ * @return {ol.FeatureStyleFunction} A style function.
+ */
+ol.Feature.createStyleFunction = function(obj) {
+  var styleFunction;
+
+  if (goog.isFunction(obj)) {
+    styleFunction = obj;
+  } else {
+    /**
+     * @type {Array.<ol.style.Style>}
+     */
+    var styles;
+    if (goog.isArray(obj)) {
+      styles = obj;
+    } else {
+      goog.asserts.assertInstanceof(obj, ol.style.Style,
+          'obj should be an ol.style.Style');
+      styles = [obj];
+    }
+    styleFunction = function() {
+      return styles;
+    };
+  }
+  return styleFunction;
+};

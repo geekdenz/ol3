@@ -1,100 +1,83 @@
-// FIXME draw drag box
-// FIXME works for View2D only
-
 goog.provide('ol.interaction.DragZoom');
 
 goog.require('goog.asserts');
-goog.require('ol.Size');
-goog.require('ol.View2D');
-goog.require('ol.control.DragBox');
+goog.require('ol.animation');
+goog.require('ol.easing');
+goog.require('ol.events.condition');
 goog.require('ol.extent');
-goog.require('ol.interaction.ConditionType');
-goog.require('ol.interaction.Drag');
-goog.require('ol.interaction.condition');
-
-
-/**
- * @define {number} Hysterisis pixels.
- */
-ol.SHIFT_DRAG_ZOOM_HYSTERESIS_PIXELS = 8;
-
-
-/**
- * @const {number}
- */
-ol.SHIFT_DRAG_ZOOM_HYSTERESIS_PIXELS_SQUARED =
-    ol.SHIFT_DRAG_ZOOM_HYSTERESIS_PIXELS *
-    ol.SHIFT_DRAG_ZOOM_HYSTERESIS_PIXELS;
+goog.require('ol.interaction.DragBox');
 
 
 
 /**
+ * @classdesc
+ * Allows the user to zoom the map by clicking and dragging on the map,
+ * normally combined with an {@link ol.events.condition} that limits
+ * it to when a key, shift by default, is held down.
+ *
+ * To change the style of the box, use CSS and the `.ol-dragzoom` selector, or
+ * your custom one configured with `className`.
+ *
  * @constructor
- * @extends {ol.interaction.Drag}
- * @param {ol.interaction.DragZoomOptions=} opt_options Options.
+ * @extends {ol.interaction.DragBox}
+ * @param {olx.interaction.DragZoomOptions=} opt_options Options.
+ * @api stable
  */
 ol.interaction.DragZoom = function(opt_options) {
+  var options = opt_options ? opt_options : {};
 
-  goog.base(this);
-
-  var options = goog.isDef(opt_options) ? opt_options : {};
+  var condition = options.condition ?
+      options.condition : ol.events.condition.shiftKeyOnly;
 
   /**
    * @private
-   * @type {ol.interaction.ConditionType}
+   * @type {number}
    */
-  this.condition_ = goog.isDef(options.condition) ?
-      options.condition : ol.interaction.condition.shiftKeyOnly;
+  this.duration_ = options.duration !== undefined ? options.duration : 200;
 
-  /**
-   * @type {ol.control.DragBox}
-   * @private
-   */
-  this.dragBox_ = null;
-
+  goog.base(this, {
+    condition: condition,
+    className: options.className || 'ol-dragzoom'
+  });
 
 };
-goog.inherits(ol.interaction.DragZoom, ol.interaction.Drag);
+goog.inherits(ol.interaction.DragZoom, ol.interaction.DragBox);
 
 
 /**
  * @inheritDoc
  */
-ol.interaction.DragZoom.prototype.handleDragEnd =
-    function(mapBrowserEvent) {
-  this.dragBox_.setMap(null);
-  this.dragBox_ = null;
-  if (this.deltaX * this.deltaX + this.deltaY * this.deltaY >=
-      ol.SHIFT_DRAG_ZOOM_HYSTERESIS_PIXELS_SQUARED) {
-    var map = mapBrowserEvent.map;
-    var extent = ol.extent.boundingExtent(
-        [this.startCoordinate, mapBrowserEvent.getCoordinate()]);
-    map.withFrozenRendering(function() {
-      // FIXME works for View2D only
-      var view = map.getView();
-      goog.asserts.assertInstanceof(view, ol.View2D);
-      var mapSize = /** @type {ol.Size} */ (map.getSize());
-      view.fitExtent(extent, mapSize);
-      // FIXME we should preserve rotation
-      view.setRotation(0);
-    });
-  }
-};
+ol.interaction.DragZoom.prototype.onBoxEnd = function() {
+  var map = this.getMap();
 
+  var view = map.getView();
+  goog.asserts.assert(view, 'map must have view');
 
-/**
- * @inheritDoc
- */
-ol.interaction.DragZoom.prototype.handleDragStart =
-    function(mapBrowserEvent) {
-  var browserEvent = mapBrowserEvent.browserEvent;
-  if (browserEvent.isMouseActionButton() && this.condition_(mapBrowserEvent)) {
-    this.dragBox_ = new ol.control.DragBox({
-      startCoordinate: this.startCoordinate
-    });
-    this.dragBox_.setMap(mapBrowserEvent.map);
-    return true;
-  } else {
-    return false;
-  }
+  var size = map.getSize();
+  goog.asserts.assert(size !== undefined, 'size should be defined');
+
+  var extent = this.getGeometry().getExtent();
+
+  var resolution = view.constrainResolution(
+      view.getResolutionForExtent(extent, size));
+
+  var currentResolution = view.getResolution();
+  goog.asserts.assert(currentResolution !== undefined, 'res should be defined');
+
+  var currentCenter = view.getCenter();
+  goog.asserts.assert(currentCenter !== undefined, 'center should be defined');
+
+  map.beforeRender(ol.animation.zoom({
+    resolution: currentResolution,
+    duration: this.duration_,
+    easing: ol.easing.easeOut
+  }));
+  map.beforeRender(ol.animation.pan({
+    source: currentCenter,
+    duration: this.duration_,
+    easing: ol.easing.easeOut
+  }));
+
+  view.setCenter(ol.extent.getCenter(extent));
+  view.setResolution(resolution);
 };

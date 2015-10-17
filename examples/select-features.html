@@ -1,56 +1,26 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
-    <link rel="stylesheet" href="../css/ol.css" type="text/css">
-    <link rel="stylesheet" href="../resources/bootstrap/css/bootstrap.min.css" type="text/css">
-    <link rel="stylesheet" href="../resources/layout.css" type="text/css">
-    <link rel="stylesheet" href="../resources/bootstrap/css/bootstrap-responsive.min.css" type="text/css">
-    <title>Select features example</title>
-  </head>
-  <body>
-
-    <div class="navbar navbar-inverse navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <a class="brand" href="./">OpenLayers 3 Examples</a>
-          <ul class="nav pull-right">
-            <li><iframe class="github-watch-button" src="http://ghbtns.com/github-btn.html?user=openlayers&repo=ol3&type=watch&count=true"
-  allowtransparency="true" frameborder="0" scrolling="0" height="20" width="90"></iframe></li>
-            <li><a href="https://twitter.com/share" class="twitter-share-button" data-count="none" data-hashtags="openlayers">&nbsp;</a></li>
-            <li><div class="g-plusone-wrapper"><div class="g-plusone" data-size="medium" data-annotation="none"></div></div></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <div class="container-fluid">
-
-      <div class="row-fluid">
-        <div class="span12">
-          <div id="map" class="map"></div>
-        </div>
-      </div>
-
-      <div class="row-fluid">
-
-        <div class="span12">
-          <h4 id="title">Select features example</h4>
-          <p id="shortdesc">Example of using the Select interaction. Select features by clicking polygons. Hold the Shift-key to add to the selection.</p>
-          <div id="docs">
-            <p>See the <a href="select-features.js" target="_blank">select-features.js source</a> to see how this is done.</p>
-          </div>
-          <div id="tags">select, vector</div>
-        </div>
-
-      </div>
-
-    </div>
-
-    <script src="loader.js?id=select-features" type="text/javascript"></script>
-    <script src="../resources/social-links.js" type="text/javascript"></script>
-
-  </body>
-</html>
+---
+template: example.html
+title: Select features example
+shortdesc: Example of using the Select interaction.
+docs: >
+  Choose between <code>Single-click</code>, <code>Click</code>, <code>Hover</code> and <code>Alt+Click</code> as the event type for selection in the combobox below. When using <code>Single-click</code> or <code>Click</code> you can hold do <code>Shift</code> key to toggle the feature in the selection.</p>
+          <p>Note: when <code>Single-click</code> is used double-clicks won't select features. This in contrast to <code>Click</code>, where a double-click will both select the feature and zoom the map (because of the <code>DoubleClickZoom</code> interaction). Note that <code>Single-click</code> is less responsive than <code>Click</code> because of the delay it uses to detect double-clicks.</p>
+  <p>In this example, a listener is registered for the Select interaction's <code>select</code> event in order to update the selection status below.
+  <form class="form-inline">
+    <label>Action type &nbsp;</label>
+      <select id="type" class="form-control">
+        <option value="none" selected>None</option>
+        <option value="singleclick">Single-click</option>
+        <option value="click">Click</option>
+        <option value="pointermove">Hover</option>
+        <option value="altclick">Alt+Click</option>
+      </select>
+      <span id="status">&nbsp;0 selected features</span>
+  </form>
+tags: "select, vector"
+---
+<div class="row-fluid">
+  <div class="span12">
+    <div id="map" class="map"></div>
+  </div>
+</div>

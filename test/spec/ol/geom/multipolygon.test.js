@@ -1,93 +1,160 @@
 goog.provide('ol.test.geom.MultiPolygon');
 
+
 describe('ol.geom.MultiPolygon', function() {
 
-  var outer1 = [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]],
-      inner1a = [[1, 1], [2, 1], [2, 2], [1, 2], [1, 1]],
-      inner1b = [[8, 8], [9, 8], [9, 9], [8, 9], [8, 8]],
-      outer2 = [[10, 10], [20, 0], [20, 50], [10, 50], [10, 10]];
+  it('can be constructed with a null geometry', function() {
+    expect(function() {
+      var multiPolygon = new ol.geom.MultiPolygon(null);
+      multiPolygon = multiPolygon; // suppress gjslint warning
+    }).not.to.throwException();
+  });
 
-  describe('constructor', function() {
+  describe('with a null MultiPolygon', function() {
 
-    it('creates a multi-linestring from an array', function() {
-      var multi = new ol.geom.MultiPolygon([
-        [outer1, inner1a, inner1b],
-        [outer2]]);
-      expect(multi).to.be.a(ol.geom.MultiPolygon);
-      expect(multi).to.be.a(ol.geom.Geometry);
+    var multiPolygon;
+    beforeEach(function() {
+      multiPolygon = new ol.geom.MultiPolygon(null);
     });
 
-    it('throws when given with insufficient dimensions', function() {
-      expect(function() {
-        var multi = new ol.geom.MultiPolygon([1]);
-        multi = multi; // suppress gjslint warning about unused variable
-      }).to.throwException();
+    it('can append polygons', function() {
+      multiPolygon.appendPolygon(
+          new ol.geom.Polygon([[[0, 0], [0, 2], [1, 1], [2, 0]]]));
+      expect(multiPolygon.getCoordinates()).to.eql(
+          [[[[0, 0], [0, 2], [1, 1], [2, 0]]]]);
+      multiPolygon.appendPolygon(
+          new ol.geom.Polygon([[[3, 0], [4, 1], [5, 2], [5, 0]]]));
+      expect(multiPolygon.getCoordinates()).to.eql([
+        [[[0, 0], [0, 2], [1, 1], [2, 0]]],
+        [[[3, 0], [4, 1], [5, 2], [5, 0]]]
+      ]);
+      expect(multiPolygon.getPolygons().length).to.eql(2);
     });
 
   });
 
-  describe('#components', function() {
+  describe('with an empty MultiPolygon', function() {
 
-    it('is an array of polygons', function() {
-      var multi = new ol.geom.MultiPolygon([
-        [outer1, inner1a, inner1b],
-        [outer2]]);
+    var multiPolygon;
+    beforeEach(function() {
+      multiPolygon = new ol.geom.MultiPolygon([]);
+    });
 
-      expect(multi.components.length).to.be(2);
-      expect(multi.components[0]).to.be.a(ol.geom.Polygon);
-      expect(multi.components[1]).to.be.a(ol.geom.Polygon);
-
+    it('can append polygons', function() {
+      multiPolygon.appendPolygon(
+          new ol.geom.Polygon([[[0, 0], [0, 2], [1, 1], [2, 0]]]));
+      expect(multiPolygon.getCoordinates()).to.eql(
+          [[[[0, 0], [0, 2], [1, 1], [2, 0]]]]);
+      multiPolygon.appendPolygon(
+          new ol.geom.Polygon([[[3, 0], [4, 1], [5, 2], [5, 0]]]));
+      expect(multiPolygon.getCoordinates()).to.eql([
+        [[[0, 0], [0, 2], [1, 1], [2, 0]]],
+        [[[3, 0], [4, 1], [5, 2], [5, 0]]]
+      ]);
+      expect(multiPolygon.getPolygons().length).to.eql(2);
     });
 
   });
 
-  describe('#dimension', function() {
+  describe('with a simple MultiPolygon', function() {
 
-    it('can be 2', function() {
-      var multi = new ol.geom.MultiPolygon([
-        [outer1, inner1a, inner1b],
-        [outer2]]);
-      expect(multi.dimension).to.be(2);
+    var multiPolygon;
+    beforeEach(function() {
+      multiPolygon = new ol.geom.MultiPolygon([
+        [[[0, 0], [0, 2], [1, 1], [2, 0]]],
+        [[[3, 0], [4, 1], [5, 2], [5, 0]]]
+      ]);
     });
 
-    it('can be 3', function() {
-      var multi = new ol.geom.MultiPolygon([[[[10, 20, 30], [40, 50, 60]]]]);
-      expect(multi.dimension).to.be(3);
+    it('can return individual polygons', function() {
+      var polygon0 = multiPolygon.getPolygon(0);
+      expect(polygon0).to.be.an(ol.geom.Polygon);
+      expect(polygon0.getCoordinates()).to.eql(
+          [[[0, 0], [0, 2], [1, 1], [2, 0]]]);
+      var polygon1 = multiPolygon.getPolygon(1);
+      expect(polygon1).to.be.an(ol.geom.Polygon);
+      expect(polygon1.getCoordinates()).to.eql(
+          [[[3, 0], [4, 1], [5, 2], [5, 0]]]);
+    });
+
+    it('can return all polygons', function() {
+      var polygons = multiPolygon.getPolygons();
+      expect(polygons).to.be.an(Array);
+      expect(polygons).to.have.length(2);
+      expect(polygons[0]).to.be.an(ol.geom.Polygon);
+      expect(polygons[0].getCoordinates()).to.eql(
+          [[[0, 0], [0, 2], [1, 1], [2, 0]]]);
+      expect(polygons[1]).to.be.an(ol.geom.Polygon);
+      expect(polygons[1].getCoordinates()).to.eql(
+          [[[3, 0], [4, 1], [5, 2], [5, 0]]]);
+    });
+
+    describe('#getCoordinates()', function() {
+
+      var cw = [[-180, -90], [-180, 90], [180, 90], [180, -90], [-180, -90]];
+      var cw2 = [[-140, -60], [-140, 60], [140, 60], [140, -60], [-140, -60]];
+      var ccw = [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]];
+      var ccw2 = [[-140, -60], [140, -60], [140, 60], [-140, 60], [-140, -60]];
+      var right = new ol.geom.MultiPolygon([[ccw, cw], [ccw2, cw2]]);
+      var left = new ol.geom.MultiPolygon([[cw, ccw], [cw2, ccw2]]);
+
+      it('returns coordinates as they were constructed', function() {
+        expect(right.getCoordinates()).to.eql([[ccw, cw], [ccw2, cw2]]);
+        expect(left.getCoordinates()).to.eql([[cw, ccw], [cw2, ccw2]]);
+      });
+
+      it('can return coordinates with right-hand orientation', function() {
+        expect(right.getCoordinates(true)).to.eql([[ccw, cw], [ccw2, cw2]]);
+        expect(left.getCoordinates(true)).to.eql([[ccw, cw], [ccw2, cw2]]);
+      });
+
+      it('can return coordinates with left-hand orientation', function() {
+        expect(right.getCoordinates(false)).to.eql([[cw, ccw], [cw2, ccw2]]);
+        expect(left.getCoordinates(false)).to.eql([[cw, ccw], [cw2, ccw2]]);
+      });
+
+    });
+
+    describe('#getExtent()', function() {
+
+      it('returns expected result', function() {
+        expect(multiPolygon.getExtent()).to.eql([0, 0, 5, 2]);
+      });
+
+    });
+
+    describe('#getSimplifiedGeometry', function() {
+
+      it('returns the expected result', function() {
+        var simplifiedGeometry = multiPolygon.getSimplifiedGeometry(1);
+        expect(simplifiedGeometry).to.be.an(ol.geom.MultiPolygon);
+        expect(simplifiedGeometry.getCoordinates()).to.eql([
+          [[[0, 0], [0, 2], [2, 0]]],
+          [[[3, 0], [5, 2], [5, 0]]]
+        ]);
+      });
+    });
+
+    describe('#intersectsExtent()', function() {
+
+      it('returns true for extent of of each polygon', function() {
+        var polygons = multiPolygon.getPolygons();
+        for (var i = 0; i < polygons.length; i++) {
+          expect(multiPolygon.intersectsExtent(
+              polygons[i].getExtent())).to.be(true);
+        }
+      });
+
+      it('returns false for non-matching extent within own extent', function() {
+        expect(multiPolygon.intersectsExtent([2.1, 0, 2.9, 2])).to.be(false);
+      });
+
     });
 
   });
-
-  describe('#getBounds()', function() {
-
-    it('returns the bounding extent', function() {
-      var multi = new ol.geom.MultiPolygon([
-        [outer1, inner1a, inner1b],
-        [outer2]]);
-      var bounds = multi.getBounds();
-      expect(bounds[0]).to.be(0);
-      expect(bounds[2]).to.be(20);
-      expect(bounds[1]).to.be(0);
-      expect(bounds[3]).to.be(50);
-    });
-
-  });
-
-  describe('#getCoordinates', function() {
-
-    it('returns an array', function() {
-      var coordinates = [
-        [outer1, inner1a, inner1b],
-        [outer2]
-      ];
-      var multi = new ol.geom.MultiPolygon(coordinates);
-      expect(multi.getCoordinates()).to.eql(coordinates);
-    });
-
-  });
-
 
 });
 
-goog.require('ol.geom.Geometry');
+
 goog.require('ol.geom.MultiPolygon');
 goog.require('ol.geom.Polygon');

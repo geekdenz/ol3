@@ -1,43 +1,44 @@
 goog.provide('ol.control');
 
+goog.require('ol');
 goog.require('ol.Collection');
 goog.require('ol.control.Attribution');
-goog.require('ol.control.Logo');
+goog.require('ol.control.Rotate');
 goog.require('ol.control.Zoom');
 
 
 /**
- * @param {ol.control.DefaultsOptions=} opt_options Defaults options.
- * @return {ol.Collection} Controls.
+ * Set of controls included in maps by default. Unless configured otherwise,
+ * this returns a collection containing an instance of each of the following
+ * controls:
+ * * {@link ol.control.Zoom}
+ * * {@link ol.control.Rotate}
+ * * {@link ol.control.Attribution}
+ *
+ * @param {olx.control.DefaultsOptions=} opt_options Defaults options.
+ * @return {ol.Collection.<ol.control.Control>} Controls.
+ * @api stable
  */
 ol.control.defaults = function(opt_options) {
 
-  var options = goog.isDef(opt_options) ? opt_options : {};
+  var options = opt_options ? opt_options : {};
 
   var controls = new ol.Collection();
 
-  var attributionControl = goog.isDef(options.attribution) ?
+  var zoomControl = options.zoom !== undefined ? options.zoom : true;
+  if (zoomControl) {
+    controls.push(new ol.control.Zoom(options.zoomOptions));
+  }
+
+  var rotateControl = options.rotate !== undefined ? options.rotate : true;
+  if (rotateControl) {
+    controls.push(new ol.control.Rotate(options.rotateOptions));
+  }
+
+  var attributionControl = options.attribution !== undefined ?
       options.attribution : true;
   if (attributionControl) {
-    var attributionControlOptions = goog.isDef(options.attributionOptions) ?
-        options.attributionOptions : undefined;
-    controls.push(new ol.control.Attribution(attributionControlOptions));
-  }
-
-  var logoControl = goog.isDef(options.logo) ?
-      options.logo : true;
-  if (logoControl) {
-    var logoControlOptions = goog.isDef(options.logoOptions) ?
-        options.logoOptions : undefined;
-    controls.push(new ol.control.Logo(logoControlOptions));
-  }
-
-  var zoomControl = goog.isDef(options.zoom) ?
-      options.zoom : true;
-  if (zoomControl) {
-    var zoomControlOptions = goog.isDef(options.zoomOptions) ?
-        options.zoomOptions : undefined;
-    controls.push(new ol.control.Zoom(zoomControlOptions));
+    controls.push(new ol.control.Attribution(options.attributionOptions));
   }
 
   return controls;

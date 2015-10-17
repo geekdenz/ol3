@@ -8,31 +8,10 @@
  * @externs
  */
 
-// @see https://code.google.com/p/closure-compiler/issues/detail?id=1060
+// see https://github.com/google/closure-compiler/pull/1206
 
-/** @type {Date} */
-HTMLInputElement.prototype.valueAsDate;
-
-/** @type {number} */
-HTMLInputElement.prototype.valueAsNumber;
-
-
-// @see https://code.google.com/p/closure-compiler/issues/detail?id=1084
-
-/** @type {?number} */
-DeviceRotationRate.prototype.alpha;
-
-/** @type {?number} */
-DeviceRotationRate.prototype.beta;
-
-/** @type {?number} */
-DeviceRotationRate.prototype.gamma;
-
-
-// @see https://code.google.com/p/closure-compiler/issues/detail?id=1088
-
-/** @type {?number} */
-DeviceOrientationEvent.prototype.webkitCompassAccuracy;
-
-/** @type {?number} */
-DeviceOrientationEvent.prototype.webkitCompassHeading;
+/**
+ * @type {string}
+ * @see http://www.w3.org/TR/pointerevents/#the-touch-action-css-property
+ */
+CSSProperties.prototype.touchAction;

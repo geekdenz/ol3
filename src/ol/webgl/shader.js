@@ -1,3 +1,6 @@
+goog.provide('ol.webgl.Fragment');
+goog.provide('ol.webgl.Shader');
+goog.provide('ol.webgl.Vertex');
 goog.provide('ol.webgl.shader');
 
 goog.require('goog.functions');
@@ -9,6 +12,7 @@ goog.require('ol.webgl');
 /**
  * @constructor
  * @param {string} source Source.
+ * @struct
  */
 ol.webgl.Shader = function(source) {
 
@@ -46,6 +50,7 @@ ol.webgl.Shader.prototype.isAnimated = goog.functions.FALSE;
  * @constructor
  * @extends {ol.webgl.Shader}
  * @param {string} source Source.
+ * @struct
  */
 ol.webgl.shader.Fragment = function(source) {
   goog.base(this, source);
@@ -66,6 +71,7 @@ ol.webgl.shader.Fragment.prototype.getType = function() {
  * @constructor
  * @extends {ol.webgl.Shader}
  * @param {string} source Source.
+ * @struct
  */
 ol.webgl.shader.Vertex = function(source) {
   goog.base(this, source);
