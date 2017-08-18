@@ -1,4 +1,10 @@
-goog.provide('ol.test.Feature');
+
+
+goog.require('ol.Feature');
+goog.require('ol.geom.Point');
+goog.require('ol.obj');
+goog.require('ol.style.Style');
+
 
 describe('ol.Feature', function() {
 
@@ -81,7 +87,7 @@ describe('ol.Feature', function() {
     it('is empty by default', function() {
       var feature = new ol.Feature();
       var properties = feature.getProperties();
-      expect(goog.object.isEmpty(properties)).to.be(true);
+      expect(ol.obj.isEmpty(properties)).to.be(true);
     });
 
   });
@@ -297,7 +303,7 @@ describe('ol.Feature', function() {
     var style = new ol.style.Style();
 
     var styleFunction = function(feature, resolution) {
-      return null;
+      return resolution;
     };
 
     it('accepts a single style', function() {
@@ -316,8 +322,19 @@ describe('ol.Feature', function() {
 
     it('accepts a style function', function() {
       var feature = new ol.Feature();
+      function featureStyleFunction(resolution) {
+        return styleFunction(this, resolution);
+      }
+      feature.setStyle(featureStyleFunction);
+      expect(feature.getStyleFunction()).to.be(featureStyleFunction);
+      expect(feature.getStyleFunction()(42)).to.be(42);
+    });
+
+    it('accepts a layer style function', function() {
+      var feature = new ol.Feature();
       feature.setStyle(styleFunction);
-      expect(feature.getStyleFunction()).to.be(styleFunction);
+      expect(feature.getStyleFunction()).to.not.be(styleFunction);
+      expect(feature.getStyleFunction()(42)).to.be(42);
     });
 
     it('accepts null', function() {
@@ -460,10 +477,3 @@ describe('ol.Feature.createStyleFunction()', function() {
   });
 
 });
-
-
-goog.require('goog.events');
-goog.require('goog.object');
-goog.require('ol.Feature');
-goog.require('ol.geom.Point');
-goog.require('ol.style.Style');

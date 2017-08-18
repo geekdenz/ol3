@@ -1,13 +1,12 @@
 goog.require('ol.Map');
 goog.require('ol.View');
-goog.require('ol.interaction');
 goog.require('ol.interaction.Draw');
 goog.require('ol.interaction.Modify');
 goog.require('ol.interaction.Select');
 goog.require('ol.interaction.Snap');
 goog.require('ol.layer.Tile');
 goog.require('ol.layer.Vector');
-goog.require('ol.source.MapQuest');
+goog.require('ol.source.OSM');
 goog.require('ol.source.Vector');
 goog.require('ol.style.Circle');
 goog.require('ol.style.Fill');
@@ -15,7 +14,7 @@ goog.require('ol.style.Stroke');
 goog.require('ol.style.Style');
 
 var raster = new ol.layer.Tile({
-  source: new ol.source.MapQuest({layer: 'sat'})
+  source: new ol.source.OSM()
 });
 
 var vector = new ol.layer.Vector({
@@ -72,6 +71,7 @@ var Modify = {
 };
 Modify.init();
 
+var optionsForm = document.getElementById('options-form');
 
 var Draw = {
   init: function() {
@@ -81,6 +81,8 @@ var Draw = {
     this.LineString.setActive(false);
     map.addInteraction(this.Polygon);
     this.Polygon.setActive(false);
+    map.addInteraction(this.Circle);
+    this.Circle.setActive(false);
   },
   Point: new ol.interaction.Draw({
     source: vector.getSource(),
@@ -93,6 +95,10 @@ var Draw = {
   Polygon: new ol.interaction.Draw({
     source: vector.getSource(),
     type: /** @type {ol.geom.GeometryType} */ ('Polygon')
+  }),
+  Circle: new ol.interaction.Draw({
+    source: vector.getSource(),
+    type: /** @type {ol.geom.GeometryType} */ ('Circle')
   }),
   getActive: function() {
     return this.activeType ? this[this.activeType].getActive() : false;
@@ -110,8 +116,6 @@ var Draw = {
   }
 };
 Draw.init();
-
-var optionsForm = document.getElementById('options-form');
 
 
 /**

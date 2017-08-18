@@ -1,4 +1,9 @@
-goog.provide('ol.test.Overlay');
+
+
+goog.require('ol.Map');
+goog.require('ol.Overlay');
+goog.require('ol.View');
+
 
 describe('ol.Overlay', function() {
   var target, map;
@@ -28,7 +33,7 @@ describe('ol.Overlay', function() {
   });
 
   afterEach(function() {
-    goog.dispose(map);
+    map.dispose();
     document.body.removeChild(target);
   });
 
@@ -70,9 +75,29 @@ describe('ol.Overlay', function() {
 
   });
 
-});
+  describe('#setVisible()', function() {
+    var overlay, target;
 
-goog.require('goog.dispose');
-goog.require('ol.Map');
-goog.require('ol.Overlay');
-goog.require('ol.View');
+    beforeEach(function() {
+      target = document.createElement('div');
+    });
+    afterEach(function() {
+      map.removeOverlay(overlay);
+    });
+
+    it('changes the CSS display value', function() {
+      overlay = new ol.Overlay({
+        element: target,
+        position: [0, 0]
+      });
+      map.addOverlay(overlay);
+      expect(overlay.element_.style.display).to.be('none');
+      overlay.setVisible(true);
+      expect(overlay.element_.style.display).not.to.be('none');
+      overlay.setVisible(false);
+      expect(overlay.element_.style.display).to.be('none');
+    });
+
+  });
+
+});

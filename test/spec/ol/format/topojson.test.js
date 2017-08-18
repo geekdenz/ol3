@@ -1,4 +1,11 @@
-goog.provide('ol.test.format.TopoJSON');
+
+
+goog.require('ol.Feature');
+goog.require('ol.geom.MultiPolygon');
+goog.require('ol.geom.Polygon');
+goog.require('ol.format.Feature');
+goog.require('ol.proj');
+goog.require('ol.format.TopoJSON');
 
 var aruba = {
   type: 'Topology',
@@ -22,6 +29,16 @@ var aruba = {
   ]
 };
 
+var zeroId = {
+  type: 'Topology',
+  objects: {
+    foobar: {
+      type: 'Point',
+      id: 0,
+      coordinates: [0, 42]
+    }
+  }
+};
 
 describe('ol.format.TopoJSON', function() {
 
@@ -58,6 +75,15 @@ describe('ol.format.TopoJSON', function() {
         -70.08100810081008, 12.417091709170947,
         -69.9009900990099, 12.608069195591469
       ]);
+    });
+
+    it('can read a feature with id equal to 0', function() {
+      var features = format.readFeaturesFromObject(zeroId);
+      expect(features).to.have.length(1);
+
+      var feature = features[0];
+      expect(feature).to.be.a(ol.Feature);
+      expect(feature.getId()).to.be(0);
     });
 
   });
@@ -150,13 +176,29 @@ describe('ol.format.TopoJSON', function() {
       });
     });
 
+    it('sets the topology\'s child names as feature property', function(done) {
+      afterLoadText('spec/ol/format/topojson/world-110m.json', function(text) {
+        var format = new ol.format.TopoJSON({
+          layerName: 'layer'
+        });
+        var features = format.readFeatures(text);
+        expect(features[0].get('layer')).to.be('land');
+        expect(features[177].get('layer')).to.be('countries');
+        done();
+      });
+    });
+
+    it('only parses features from specified topology\'s children', function(done) {
+      afterLoadText('spec/ol/format/topojson/world-110m.json', function(text) {
+        var format = new ol.format.TopoJSON({
+          layers: ['land']
+        });
+        var features = format.readFeatures(text);
+        expect(features.length).to.be(1);
+        done();
+      });
+    });
+
   });
 
 });
-
-goog.require('ol.Feature');
-goog.require('ol.geom.MultiPolygon');
-goog.require('ol.geom.Polygon');
-goog.require('ol.format.Feature');
-goog.require('ol.proj');
-goog.require('ol.format.TopoJSON');

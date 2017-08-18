@@ -1,17 +1,17 @@
-# Contributing to OpenLayers 3
+# Contributing to OpenLayers
 
-Thanks for your interest in contributing to OpenLayers 3.
+Thanks for your interest in contributing to OpenLayers.
 
 ## Asking Questions
 
-Please ask questions about using the library on [stackoverflow using the tag 'openlayers-3'](http://stackoverflow.com/questions/tagged/openlayers-3).
+Please ask questions about using the library on [Stack Overflow using the tag 'openlayers'](http://stackoverflow.com/questions/tagged/openlayers).
 
-When you want to get involved and discuss new features or changes, please use [the mailing list](https://groups.google.com/forum/#!forum/ol3-dev).
+When you want to get involved and discuss new features or changes, please use [the mailing list](https://groups.google.com/forum/#!forum/openlayers-dev).
 
 
 ## Submitting Bug Reports
 
-Please use the [GitHub issue tracker](https://github.com/openlayers/ol3/issues). Before creating a new issue, do a quick search to see if the problem has been reported already.
+Please use the [GitHub issue tracker](https://github.com/openlayers/openlayers/issues). Before creating a new issue, do a quick search to see if the problem has been reported already.
 
 
 ## Getting Familiar with the Code in the Repository
@@ -21,10 +21,13 @@ Look for `readme.md` files! Several directories contain a `readme.md` file that 
 
 ## Contributing Code
 
+See [`DEVELOPING.md`](https://github.com/openlayers/openlayers/blob/master/DEVELOPING.md) to learn how to get started developing.
+
 Our preferred means of receiving contributions is through [pull requests](https://help.github.com/articles/using-pull-requests). Make sure
 that your pull request follows our pull request guidelines below before submitting it.
 
-This page describes what you need to know to contribute code to ol3 as a developer.
+This page describes what you need to know to contribute code to OpenLayers as a developer.
+
 
 ## Contributor License Agreement
 
@@ -35,165 +38,14 @@ Contributor License Agreement](https://raw.github.com/openlayers/cla/master/ccla
 making your contribution as an individual, you can submit a digital [Individual
 Contributor License Agreement](https://docs.google.com/spreadsheet/viewform?formkey=dGNNVUJEMXF2dERTU0FXM3JjNVBQblE6MQ).
 
-## Setting up development environment
-
-You will obviously start by
-[forking](https://github.com/openlayers/ol3/fork) the ol3 repository.
-
-### Travis CI
-
-The Travis CI hook is enabled on the Github repository. This means every pull request
-is run through a full test suite to ensure it compiles and passes the tests. Failing
-pull requests will not be merged.
-
-Although not mandatory, it is also recommended to set up Travis CI for your ol3 fork.
-For that go to your ol3 fork's Service Hooks page and set up the Travis hook.
-Then every time you push to your fork, the test suite will be run. This means
-errors can be caught before creating a pull request. For those making
-small or occasional contributions, this may be enough to check that your contributions
-are ok; in this case, you do not need to install the build tools on your local environment
-as described below.
-
-### Development dependencies
-
-The minimum requirements are:
-
-* GNU Make
-* Git
-* [Node.js](http://nodejs.org/) (0.10.x or higher)
-* Python 2.6 or 2.7 with a couple of extra modules (see below)
-* Java 7 (JRE and JDK)
-
-The executables `git`, `node`, `python` and `java` should be in your `PATH`.
-
-You can check your configuration by running:
-
-    $ make check-deps
-
-To install the Node.js dependencies run
-
-    $ npm install
-
-To install the extra Python modules, run:
-
-    $ sudo pip install -r requirements.txt
-or
-
-    $ cat requirements.txt | sudo xargs easy_install
-
-depending on your OS and Python installation.
-
-(You can also install the Python modules in a Python virtual environment if you want to.)
-
-## Working with the build tool
-
-As an ol3 developer you will use `make` to run build targets defined in the
-`Makefile` located at the root of the repository. The `Makefile` includes
-targets for running the linter, the compiler, the tests, etc.
-
-The usage of `make` is as follows:
-
-    $ make <target>
-
-where `<target>` is the name of the build target you want to execute. For
-example:
-
-    $ make test
-
-The main build targets are `serve`, `lint`, `build`, `test`, and `check`. The
-latter is a meta-target that basically runs `lint`, `build`, and `test`.
-
-The `serve` target starts a node-based web server, which we will refer to as the *dev server*. You'll need to start that server for running the examples and the tests in a browser. More information on that further down.
-
-Other targets include `apidoc` and `ci`. The latter is the target used on Travis CI. See ol3's [Travis configuration file](https://github.com/openlayers/ol3/blob/master/.travis.yml).
-
-## Running the `check` target
-
-The `check` target is to be run before pushing code to GitHub and opening pull
-requests. Branches that don't pass `check` won't pass the integration tests,
-and have therefore no chance of being merged into `master`.
-
-To run the `check` target:
-
-    $ make check
-
-If you want to run the full suite of integration tests, see "Running the integration
-tests" below.
-
-## Running examples
-
-To run the examples you first need to start the dev server:
-
-    $ make serve
-
-Then, just point your browser <http://localhost:3000/build/examples> in your browser. For example <http://localhost:3000/build/examples/side-by-side.html>.
-
-Run examples against the `ol.js` standalone build:
-
-The examples can also be run against the `ol.js` standalone build, just like
-the examples [hosted](http://openlayers.org/en/master/examples/) on GitHub.
-Start by executing the `host-examples` build target:
-
-    $ make host-examples
-
-After running `host-examples` you can now open the examples index page in the browser: <http://localhost:3000/build/hosted/master/examples/>. (This assumes that you still have the dev server running.)
-
-Append `?mode=raw` to make the example work in full debug mode. In raw mode the OpenLayers and Closure Library scripts are loaded individually by the Closure Library's `base.js` script (which the example page loads and executes before any other script).
-
-## Running tests
-
-To run the tests in a browser start the dev server (`make serve`) and open <http://localhost:3000/test/index.html> in the browser.
-
-To run the tests on the console (headless testing with PhantomJS) use the `test` target:
-
-    $ make test
-
-See also the test-specific [README](../master/test/README.md).
-
-## Running the integration tests
-
-When you submit a pull request the [Travis continuous integration
-server](https://travis-ci.org/) will run a full suite of tests, including
-building all versions of the library and checking that all of the examples
-work.  You will receive an email with the results, and the status will be
-displayed in the pull request.
-
-To run the full suite of integration tests use the `ci` target:
-
-    $ make ci
-
-Running the full suite of integration tests currently takes 5-10 minutes.
-
-This makes sure that your commit won't break the build. It also runs JSDoc3 to
-make sure that there are no invalid API doc directives.
-
-## Adding examples
-
-Adding functionality often implies adding one or several examples. This
-section provides explanations related to adding examples.
-
-The examples are located in the `examples` directory. Adding a new example
-implies creating two or three files in this directory, an `.html` file, a `.js`
-file, and, optionally, a `.css` file.
-
-You can use `simple.js` and `simple.html` as templates for new examples.
-
-### Use of the `goog` namespace in examples
-
-Short story: the ol3 examples should not use the `goog` namespace, except
-for `goog.require`.
-
-Longer story: we want that the ol3 examples work in multiple modes, with the
-standalone lib (which has implications of the symbols and properties we
-export), and compiled together with the ol3 library.
-
-Compiling the examples together with the library makes it mandatory to declare dependencies with `goog.require` statements.
 
 ## Pull request guidelines
 
+Before working on a pull request, create an issue explaining what you want to contribute. This ensures that your pull request won't go unnoticed, and that you are not contributing something that is not suitable for the project. Once a core developer has set the `pull request accepted` label on the issue, you can submit a pull request. The pull request description should reference the original issue.
+
 Your pull request must:
 
- * Follow OpenLayers 3's coding style.
+ * Follow OpenLayers's coding style.
 
  * Pass the integration tests run automatically by the Travis Continuous
    Integration system.
@@ -225,19 +77,18 @@ include:
  * Tests
 
 
-### Follow OpenLayers 3's coding style
+### Follow OpenLayers's coding style
 
-OpenLayers 3 follows [Google's JavaScript Style
-Guide](http://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml).
-This is checked using the [Closure
-Linter](https://developers.google.com/closure/utilities/) in strict mode.  You
+OpenLayers follows [Google's JavaScript Style
+Guide](https://google.github.io/styleguide/javascriptguide.xml).
+This is checked using [ESLint](http://eslint.org/), you
 can run the linter locally on your machine before committing using the `lint`
 target:
 
     $ make lint
 
 In addition to fixing problems identified by the linter, please also follow the
-style of the existing OpenLayers 3 code, which includes:
+style of the existing OpenLayers code, which includes:
 
  * Always wrap the body of `for`, `if`, and `while` statements in braces.
 
@@ -249,13 +100,6 @@ style of the existing OpenLayers 3 code, which includes:
    alphabetical order.
 
  * Do not use assignments inside expressions.
-
- * Avoid the use of `goog.array.clone` with arrays (use slice instead).
-
- * Use `array.length = 0` instead of `goog.array.clear`.
-
- * Use bracket notation instead of `goog.object.set` and `goog.object.get` (with
-   two arguments).
 
  * Use uppercase for `@const` variables.
 
@@ -270,7 +114,7 @@ http://editorconfig.org/#download) site links to plugins for various editors.
 ### Pass the integration tests run automatically by the Travis CI system
 
 The integration tests contain a number of automated checks to ensure that the
-code follows the OpenLayers 3 style and does not break tests or examples.  You
+code follows the OpenLayers style and does not break tests or examples.  You
 can run the integration tests locally using the `ci` target:
 
     $ make ci
@@ -355,7 +199,7 @@ Microsoft Visual Studio's javascript debugger may be used to debug the
 build/hosted/your-branch/examples. It will be convenient to set
 build/hosted/your-branch/examples/index.html as the startup page.
 
-Your ol3 source tree need not be under the Cygwin root.
-if you checkout to c:/ol3 then you can build under Cygwin at /cygdrive/c/ol3 .
-However, keep the path to the ol3 files short otherwise you may see
+Your OpenLayers source tree need not be under the Cygwin root.
+if you checkout to c:/openlayers then you can build under Cygwin at /cygdrive/c/openlayers .
+However, keep the path to the OpenLayers files short otherwise you may see
 `ENAMETOOLONG` errors.

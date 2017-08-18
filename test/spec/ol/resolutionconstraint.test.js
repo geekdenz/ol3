@@ -1,4 +1,7 @@
-goog.provide('ol.test.ResolutionConstraint');
+
+
+goog.require('ol.ResolutionConstraint');
+
 
 describe('ol.ResolutionConstraint', function() {
 
@@ -238,5 +241,3 @@ describe('ol.ResolutionConstraint', function() {
     });
   });
 });
-
-goog.require('ol.ResolutionConstraint');

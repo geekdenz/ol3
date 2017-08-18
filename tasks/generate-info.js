@@ -1,9 +1,8 @@
-var fs = require('fs');
+var fs = require('fs-extra');
 var path = require('path');
 var spawn = require('child_process').spawn;
 
 var async = require('async');
-var fse = require('fs-extra');
 var walk = require('walk').walk;
 var isWindows = process.platform.indexOf('win') === 0;
 
@@ -14,12 +13,34 @@ var externsPaths = [
   path.join(externsDir, 'geojson.js')
 ];
 var infoPath = path.join(__dirname, '..', 'build', 'info.json');
-var jsdoc = path.join(__dirname, '..', 'node_modules', '.bin', 'jsdoc');
 
-// on Windows, use jsdoc.cmd
-if (isWindows) {
- jsdoc += '.cmd';
+/**
+ * Get checked path of a binary.
+ * @param {string} binaryName Binary name of the binary path to find.
+ * @return {string} Path.
+ */
+function getBinaryPath(binaryName) {
+  if (isWindows) {
+    binaryName += '.cmd';
+  }
+
+  var jsdocResolved = require.resolve('jsdoc/jsdoc.js');
+  var expectedPaths = [
+    path.join(__dirname, '..', 'node_modules', '.bin', binaryName),
+    path.resolve(path.join(path.dirname(jsdocResolved), '..', '.bin', binaryName))
+  ];
+
+  for (var i = 0; i < expectedPaths.length; i++) {
+    var expectedPath = expectedPaths[i];
+    if (fs.existsSync(expectedPath)) {
+      return expectedPath;
+    }
+  }
+
+  throw Error('JsDoc binary was not found in any of the expected paths: ' + expectedPaths);
 }
+
+var jsdoc = getBinaryPath('jsdoc');
 
 var jsdocConfig = path.join(
     __dirname, '..', 'config', 'jsdoc', 'info', 'conf.json');
@@ -99,7 +120,7 @@ function getNewer(date, newer, callback) {
     callback(new Error('Trouble walking ' + sourceDir));
   });
   walker.on('end', function() {
-  
+
     /**
      * Windows has restrictions on length of command line, so passing all the
      * changed paths to a task will fail if this limit is exceeded.
@@ -107,9 +128,9 @@ function getNewer(date, newer, callback) {
      * pass the sourceDir to the task so it can do the walking.
      */
     if (isWindows) {
-        paths = [sourceDir].concat(externsPaths);
+      paths = [sourceDir].concat(externsPaths);
     }
-  
+
     callback(null, newer ? paths : []);
   });
 }
@@ -251,7 +272,7 @@ function addSymbolProvides(info, callback) {
 function writeInfo(info, callback) {
   if (info) {
     var str = JSON.stringify(info, null, '  ');
-    fse.outputFile(infoPath, str, callback);
+    fs.outputFile(infoPath, str, callback);
   } else {
     process.nextTick(function() {
       callback(null);

@@ -83,10 +83,10 @@ positionFeature.setStyle(new ol.style.Style({
 geolocation.on('change:position', function() {
   var coordinates = geolocation.getPosition();
   positionFeature.setGeometry(coordinates ?
-      new ol.geom.Point(coordinates) : null);
+    new ol.geom.Point(coordinates) : null);
 });
 
-var featuresOverlay = new ol.layer.Vector({
+new ol.layer.Vector({
   map: map,
   source: new ol.source.Vector({
     features: [accuracyFeature, positionFeature]

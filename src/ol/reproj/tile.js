@@ -1,25 +1,14 @@
 goog.provide('ol.reproj.Tile');
-goog.provide('ol.reproj.TileFunctionType');
 
-goog.require('goog.asserts');
-goog.require('goog.events');
-goog.require('goog.events.EventType');
-goog.require('goog.math');
-goog.require('goog.object');
+goog.require('ol');
 goog.require('ol.Tile');
 goog.require('ol.TileState');
+goog.require('ol.events');
+goog.require('ol.events.EventType');
 goog.require('ol.extent');
 goog.require('ol.math');
-goog.require('ol.proj');
 goog.require('ol.reproj');
 goog.require('ol.reproj.Triangulation');
-
-
-/**
- * @typedef {function(number, number, number, number) : ol.Tile}
- */
-ol.reproj.TileFunctionType;
-
 
 
 /**
@@ -33,20 +22,21 @@ ol.reproj.TileFunctionType;
  * @param {ol.tilegrid.TileGrid} sourceTileGrid Source tile grid.
  * @param {ol.proj.Projection} targetProj Target projection.
  * @param {ol.tilegrid.TileGrid} targetTileGrid Target tile grid.
- * @param {number} z Zoom level.
- * @param {number} x X.
- * @param {number} y Y.
+ * @param {ol.TileCoord} tileCoord Coordinate of the tile.
+ * @param {ol.TileCoord} wrappedTileCoord Coordinate of the tile wrapped in X.
  * @param {number} pixelRatio Pixel ratio.
- * @param {ol.reproj.TileFunctionType} getTileFunction
+ * @param {number} gutter Gutter of the source tiles.
+ * @param {ol.ReprojTileFunctionType} getTileFunction
  *     Function returning source tiles (z, x, y, pixelRatio).
  * @param {number=} opt_errorThreshold Acceptable reprojection error (in px).
  * @param {boolean=} opt_renderEdges Render reprojection edges.
  */
 ol.reproj.Tile = function(sourceProj, sourceTileGrid,
-    targetProj, targetTileGrid, z, x, y, pixelRatio, getTileFunction,
+    targetProj, targetTileGrid, tileCoord, wrappedTileCoord,
+    pixelRatio, gutter, getTileFunction,
     opt_errorThreshold,
     opt_renderEdges) {
-  goog.base(this, [z, x, y], ol.TileState.IDLE);
+  ol.Tile.call(this, tileCoord, ol.TileState.IDLE);
 
   /**
    * @private
@@ -62,15 +52,15 @@ ol.reproj.Tile = function(sourceProj, sourceTileGrid,
 
   /**
    * @private
-   * @type {HTMLCanvasElement}
+   * @type {number}
    */
-  this.canvas_ = null;
+  this.gutter_ = gutter;
 
   /**
    * @private
-   * @type {Object.<number, HTMLCanvasElement>}
+   * @type {HTMLCanvasElement}
    */
-  this.canvasByContext_ = {};
+  this.canvas_ = null;
 
   /**
    * @private
@@ -86,13 +76,19 @@ ol.reproj.Tile = function(sourceProj, sourceTileGrid,
 
   /**
    * @private
+   * @type {ol.TileCoord}
+   */
+  this.wrappedTileCoord_ = wrappedTileCoord ? wrappedTileCoord : tileCoord;
+
+  /**
+   * @private
    * @type {!Array.<ol.Tile>}
    */
   this.sourceTiles_ = [];
 
   /**
    * @private
-   * @type {Array.<goog.events.Key>}
+   * @type {Array.<ol.EventsKey>}
    */
   this.sourcesListenerKeys_ = null;
 
@@ -102,12 +98,12 @@ ol.reproj.Tile = function(sourceProj, sourceTileGrid,
    */
   this.sourceZ_ = 0;
 
-  var targetExtent = targetTileGrid.getTileCoordExtent(this.getTileCoord());
+  var targetExtent = targetTileGrid.getTileCoordExtent(this.wrappedTileCoord_);
   var maxTargetExtent = this.targetTileGrid_.getExtent();
   var maxSourceExtent = this.sourceTileGrid_.getExtent();
 
   var limitedTargetExtent = maxTargetExtent ?
-      ol.extent.getIntersection(targetExtent, maxTargetExtent) : targetExtent;
+    ol.extent.getIntersection(targetExtent, maxTargetExtent) : targetExtent;
 
   if (ol.extent.getArea(limitedTargetExtent) === 0) {
     // Tile is completely outside range -> EMPTY
@@ -126,13 +122,14 @@ ol.reproj.Tile = function(sourceProj, sourceTileGrid,
     }
   }
 
-  var targetResolution = targetTileGrid.getResolution(z);
+  var targetResolution = targetTileGrid.getResolution(
+      this.wrappedTileCoord_[0]);
 
   var targetCenter = ol.extent.getCenter(limitedTargetExtent);
   var sourceResolution = ol.reproj.calculateSourceResolution(
       sourceProj, targetProj, targetCenter, targetResolution);
 
-  if (!goog.math.isFiniteNumber(sourceResolution) || sourceResolution <= 0) {
+  if (!isFinite(sourceResolution) || sourceResolution <= 0) {
     // invalid sourceResolution -> EMPTY
     // probably edges of the projections when no extent is defined
     this.state = ol.TileState.EMPTY;
@@ -140,7 +137,7 @@ ol.reproj.Tile = function(sourceProj, sourceTileGrid,
   }
 
   var errorThresholdInPixels = opt_errorThreshold !== undefined ?
-      opt_errorThreshold : ol.DEFAULT_RASTER_REPROJECTION_ERROR_THRESHOLD;
+    opt_errorThreshold : ol.DEFAULT_RASTER_REPROJECTION_ERROR_THRESHOLD;
 
   /**
    * @private
@@ -176,13 +173,6 @@ ol.reproj.Tile = function(sourceProj, sourceTileGrid,
     var sourceRange = sourceTileGrid.getTileRangeForExtentAndZ(
         sourceExtent, this.sourceZ_);
 
-    var tilesRequired = sourceRange.getWidth() * sourceRange.getHeight();
-    if (!goog.asserts.assert(
-        tilesRequired < ol.RASTER_REPROJECTION_MAX_SOURCE_TILES,
-        'reasonable number of tiles is required')) {
-      this.state = ol.TileState.ERROR;
-      return;
-    }
     for (var srcX = sourceRange.minX; srcX <= sourceRange.maxX; srcX++) {
       for (var srcY = sourceRange.minY; srcY <= sourceRange.maxY; srcY++) {
         var tile = getTileFunction(this.sourceZ_, srcX, srcY, pixelRatio);
@@ -197,7 +187,7 @@ ol.reproj.Tile = function(sourceProj, sourceTileGrid,
     }
   }
 };
-goog.inherits(ol.reproj.Tile, ol.Tile);
+ol.inherits(ol.reproj.Tile, ol.Tile);
 
 
 /**
@@ -207,29 +197,16 @@ ol.reproj.Tile.prototype.disposeInternal = function() {
   if (this.state == ol.TileState.LOADING) {
     this.unlistenSources_();
   }
-  goog.base(this, 'disposeInternal');
+  ol.Tile.prototype.disposeInternal.call(this);
 };
 
 
 /**
- * @inheritDoc
+ * Get the HTML Canvas element for this tile.
+ * @return {HTMLCanvasElement} Canvas.
  */
-ol.reproj.Tile.prototype.getImage = function(opt_context) {
-  if (opt_context !== undefined) {
-    var image;
-    var key = goog.getUid(opt_context);
-    if (key in this.canvasByContext_) {
-      return this.canvasByContext_[key];
-    } else if (goog.object.isEmpty(this.canvasByContext_)) {
-      image = this.canvas_;
-    } else {
-      image = /** @type {HTMLCanvasElement} */ (this.canvas_.cloneNode(false));
-    }
-    this.canvasByContext_[key] = image;
-    return image;
-  } else {
-    return this.canvas_;
-  }
+ol.reproj.Tile.prototype.getImage = function() {
+  return this.canvas_;
 };
 
 
@@ -248,21 +225,25 @@ ol.reproj.Tile.prototype.reproject_ = function() {
   }, this);
   this.sourceTiles_.length = 0;
 
-  var tileCoord = this.getTileCoord();
-  var z = tileCoord[0];
-  var size = this.targetTileGrid_.getTileSize(z);
-  var width = goog.isNumber(size) ? size : size[0];
-  var height = goog.isNumber(size) ? size : size[1];
-  var targetResolution = this.targetTileGrid_.getResolution(z);
-  var sourceResolution = this.sourceTileGrid_.getResolution(this.sourceZ_);
+  if (sources.length === 0) {
+    this.state = ol.TileState.ERROR;
+  } else {
+    var z = this.wrappedTileCoord_[0];
+    var size = this.targetTileGrid_.getTileSize(z);
+    var width = typeof size === 'number' ? size : size[0];
+    var height = typeof size === 'number' ? size : size[1];
+    var targetResolution = this.targetTileGrid_.getResolution(z);
+    var sourceResolution = this.sourceTileGrid_.getResolution(this.sourceZ_);
 
-  var targetExtent = this.targetTileGrid_.getTileCoordExtent(tileCoord);
-  this.canvas_ = ol.reproj.render(width, height, this.pixelRatio_,
-      sourceResolution, this.sourceTileGrid_.getExtent(),
-      targetResolution, targetExtent, this.triangulation_, sources,
-      this.renderEdges_);
+    var targetExtent = this.targetTileGrid_.getTileCoordExtent(
+        this.wrappedTileCoord_);
+    this.canvas_ = ol.reproj.render(width, height, this.pixelRatio_,
+        sourceResolution, this.sourceTileGrid_.getExtent(),
+        targetResolution, targetExtent, this.triangulation_, sources,
+        this.gutter_, this.renderEdges_);
 
-  this.state = ol.TileState.LOADED;
+    this.state = ol.TileState.LOADED;
+  }
   this.changed();
 };
 
@@ -277,9 +258,6 @@ ol.reproj.Tile.prototype.load = function() {
 
     var leftToLoad = 0;
 
-    goog.asserts.assert(!this.sourcesListenerKeys_,
-        'this.sourcesListenerKeys_ should be null');
-
     this.sourcesListenerKeys_ = [];
     this.sourceTiles_.forEach(function(tile, i, arr) {
       var state = tile.getState();
@@ -287,22 +265,20 @@ ol.reproj.Tile.prototype.load = function() {
         leftToLoad++;
 
         var sourceListenKey;
-        sourceListenKey = tile.listen(goog.events.EventType.CHANGE,
+        sourceListenKey = ol.events.listen(tile, ol.events.EventType.CHANGE,
             function(e) {
               var state = tile.getState();
               if (state == ol.TileState.LOADED ||
                   state == ol.TileState.ERROR ||
                   state == ol.TileState.EMPTY) {
-                goog.events.unlistenByKey(sourceListenKey);
+                ol.events.unlistenByKey(sourceListenKey);
                 leftToLoad--;
-                goog.asserts.assert(leftToLoad >= 0,
-                    'leftToLoad should not be negative');
                 if (leftToLoad === 0) {
                   this.unlistenSources_();
                   this.reproject_();
                 }
               }
-            }, false, this);
+            }, this);
         this.sourcesListenerKeys_.push(sourceListenKey);
       }
     }, this);
@@ -315,7 +291,7 @@ ol.reproj.Tile.prototype.load = function() {
     });
 
     if (leftToLoad === 0) {
-      this.reproject_();
+      setTimeout(this.reproject_.bind(this), 0);
     }
   }
 };
@@ -325,8 +301,6 @@ ol.reproj.Tile.prototype.load = function() {
  * @private
  */
 ol.reproj.Tile.prototype.unlistenSources_ = function() {
-  goog.asserts.assert(this.sourcesListenerKeys_,
-      'this.sourcesListenerKeys_ should not be null');
-  this.sourcesListenerKeys_.forEach(goog.events.unlistenByKey);
+  this.sourcesListenerKeys_.forEach(ol.events.unlistenByKey);
   this.sourcesListenerKeys_ = null;
 };

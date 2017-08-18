@@ -12,36 +12,30 @@
     ],
     "externs": [
       "externs/bingmaps.js",
+      "externs/cartodb.js",
       "externs/bootstrap.js",
       "externs/closure-compiler.js",
       "externs/esrijson.js",
       "externs/example.js",
-      "externs/fastclick.js",
       "externs/geojson.js",
       "externs/jquery-1.9.js",
       "externs/proj4js.js",
       "externs/tilejson.js",
       "externs/topojson.js"
     ],
-    "define": [
-      "goog.array.ASSUME_NATIVE_FUNCTIONS=true",
-      "goog.dom.ASSUME_STANDARDS_MODE=true",
-      "goog.json.USE_NATIVE_JSON=true",
-      "goog.DEBUG=false"
-    ],
     "jscomp_error": [
       "*"
     ],
     "jscomp_off": [
-      "useOfGoogBase",
-      "unnecessaryCasts",
       "lintChecks",
+      "analyzerChecks",
       "missingProvide",
       "unknownDefines"
     ],
     "extra_annotation_name": [
       "api", "observable"
     ],
+    "rewrite_polyfills": "false",
     "compilation_level": "ADVANCED",
     "warning_level": "VERBOSE",
     "output_wrapper": "(function(){%output%})();",

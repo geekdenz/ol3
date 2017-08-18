@@ -19,7 +19,7 @@ if (!ol.has.WEBGL) {
 
   var map = new ol.Map({
     layers: [osm],
-    renderer: 'webgl',
+    renderer: /** @type {Array<ol.renderer.Type>} */ (['webgl', 'canvas']),
     target: 'map',
     controls: ol.control.defaults({
       attributionOptions: /** @type {olx.control.AttributionOptions} */ ({

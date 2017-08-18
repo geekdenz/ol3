@@ -1,4 +1,8 @@
-goog.provide('ol.test.reproj.Triangulation');
+
+
+goog.require('ol.proj');
+goog.require('ol.reproj.Triangulation');
+
 
 describe('ol.reproj.Triangulation', function() {
   beforeEach(function() {
@@ -38,7 +42,3 @@ describe('ol.reproj.Triangulation', function() {
     });
   });
 });
-
-
-goog.require('ol.proj');
-goog.require('ol.reproj.Triangulation');
