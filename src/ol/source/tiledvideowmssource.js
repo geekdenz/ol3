@@ -4,11 +4,11 @@ goog.provide('ol.source.TiledVideoWMS');
 
 goog.require('goog.array');
 goog.require('goog.math');
-goog.require('ol.TileCoord');
-goog.require('ol.TileUrlFunction');
+//goog.require('ol.TileCoord');
+//goog.require('ol.TileUrlFunction');
 goog.require('ol.extent');
 goog.require('ol.source.VideoTileSource');
-goog.require('ol.source.wms');
+//goog.require('ol.source.wms');
 
 
 

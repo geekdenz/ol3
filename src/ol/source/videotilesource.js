@@ -2,16 +2,16 @@ goog.provide('ol.source.VideoTileSource');
 
 goog.require('goog.asserts');
 goog.require('ol.Attribution');
-goog.require('ol.Extent');
+//goog.require('ol.Extent');
 goog.require('ol.VideoTile');
-goog.require('ol.Projection');
-goog.require('ol.Tile');
-goog.require('ol.TileCache');
-goog.require('ol.TileCoord');
-goog.require('ol.TileState');
-goog.require('ol.TileUrlFunction');
-goog.require('ol.TileUrlFunctionType');
-goog.require('ol.source.TileSource');
+//goog.require('ol.Projection');
+//goog.require('ol.Tile');
+//goog.require('ol.TileCache');
+//goog.require('ol.TileCoord');
+//goog.require('ol.TileState');
+//goog.require('ol.TileUrlFunction');
+//goog.require('ol.TileUrlFunctionType');
+goog.require('ol.source.TileImage');
 goog.require('ol.tilegrid.TileGrid');
 
 
@@ -67,7 +67,7 @@ ol.source.VideoTileSource = function(options) {
   this.tileCache_ = new ol.TileCache();
 
 };
-goog.inherits(ol.source.VideoTileSource, ol.source.TileSource);
+goog.inherits(ol.source.VideoTileSource, ol.source.TileImage);
 
 
 /**
