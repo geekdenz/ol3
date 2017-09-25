@@ -17,10 +17,12 @@ goog.require('ol.source.WMTS');
 Number.prototype.padLeft = function (n,str){
     return Array(n-String(this).length+1).join(str||'0')+this;
 }
+//var minx = Number.MAX_VALUE, maxx = Number.MIN_VALUE, miny 
 function getUrl(coord) {
 	var url = 'http://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
 	//         http://npm.landcareresearch.co.nz/videos/ 00/000/000/001/000/000/001.mp4
-	return url.replace('{z}', coord[0].padLeft(2)).replace('{x}', coord[1].padLeft(3)).replace('{y}', coord[2].padLeft(3));
+	var y = -coord[2] - 1;
+	return url.replace('{z}', coord[0].padLeft(2)).replace('{x}', coord[1].padLeft(3)).replace('{y}', y.padLeft(3));
 }
 function pad(n, num) {
     var len = (""+n).length;
@@ -55,6 +57,7 @@ function reverse(ar) {
   }
   return reversed;
 }
+/*
 var resolutions = reverse([
         3.527775872778806, 8.819439681947015,
         17.63887936389403, 35.27775872778806,
@@ -62,16 +65,16 @@ var resolutions = reverse([
         352.7775872778807, 705.5551745557614,
         1411.1103491115227, 2822.2206982230455
     ]);
-var view = new ol.View({
-	//center: [20000000,60000000],
-	zoom: 0,
-	//projection: projection,
-	maxZoom: 6
-});
+	*/
+
+var resolutions = [8960, 4480, 2240, 1120, 560, 280, 140, 70, 28, 14, 7, 2.8, 1.4, 0.7, 0.28, 0.14, 0.07],
+	matrixIds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+var originCoord = [-4020900.0, 19998100];
 var source = new ol.source.XYZ({
 	tileGrid: new ol.tilegrid.TileGrid({
-		maxZoom: 9,
-		origin: [1000000, 4700000.0000001],
+		//maxZoom: 9,
+		//origin: [1000000, 4700000.0000001],
+		origin: originCoord,
 		resolutions: resolutions
 	}),
 	crossOrigin: 'Anonymous',
@@ -81,10 +84,14 @@ var source = new ol.source.XYZ({
 		var coord = imageTile.tileCoord;
 		var y = -coord[2] - 1;
 		//coord[2] = y;
-		console.log('src',src,y)
-		//imageTile.getImage().src = createVideoUrl(coord);
+		//console.log('src',src,y)
+		// http://npm.landcareresearch.co.nz/videos/00/000/000/001/000/000/001.mp4
+		imageTile.getImage().src = getUrl(coord);
 	},
-	origin: [1000000, 4700000.0000001]
+	tileUrlFunction: function(coord) {
+		console.log('COORD', coord);
+		return getUrl(coord);
+	}
 });
 //var parser = new ol.format.WMTSCapabilities();
 //var url = 'https://openlayers.org/en/v4.3.3/examples/data/WMTSCapabilities.xml';
@@ -125,36 +132,99 @@ var source = new ol.source.XYZ({
 //});
 
 
-var parser = new ol.format.WMTSCapabilities();
+//var parser = new ol.format.WMTSCapabilities();
 var map;
+proj4.defs("EPSG:2193","+proj=tmerc +lat_0=0 +lon_0=173 +k=0.9996 +x_0=1600000 +y_0=10000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +axis=neu");
+
+// Set transform functions, taken from proj4
+var forward = proj4('EPSG:4326','EPSG:2193').forward,
+	inverse = proj4('EPSG:4326','EPSG:2193').inverse;
+
+// Create new projection
+var proj2193 = new ol.proj.Projection({
+	code: 'EPSG:2193',
+	units: 'm',
+	//extent: [1000000, 4700000, 2200000, 6300000]
+	extent: [274000, 3087000, 3327000, 7173000]
+});
+
+// Add projection to global ol object
+ol.proj.addProjection(proj2193);
+
+// Add transforms
+ol.proj.addCoordinateTransforms('EPSG:4326', proj2193,
+    forward,
+    inverse
+);
+//var projection = ol.proj.get('EPSG:2193');
+//var projectionExtent = [-4062457.5262811976, 1461859.0976713542, 7068246.316059387, 8771210.999982666];
+//var originCoord = [-4020900.0, 19998100];
+//projection.setExtent(projectionExtent);
+//var resolutions = [4891.96981024998, 2445.98490512499, 1222.992452562495, 611.4962262813797, 305.74811314055756, 152.87405657041106, 76.43702828507324, 38.21851414253662, 19.10925707126831, 9.554628535634155, 4.77731426794937, 2.388657133974685, 1.1943285668550503, 0.5971642835598172, 0.29858214164761665, 0.14929144441622216, 0.07464439928879858];
+//var matrixIds = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16'];
+var tileGridOptions = {
+	// origin: ol.extent.getTopLeft(projectionExtent),
+	origin: originCoord,
+	resolutions: resolutions,
+	matrixIds: matrixIds
+};
+var tileGrid = new ol.tilegrid.WMTS(tileGridOptions);
+var view = new ol.View({
+	projection: proj2193,
+	center: [1600000, 5450000],
+	zoom: 0,
+	//minZoom: 0,
+	//maxZoom: 11
+	resolution: 2240,
+	resolutions: [8960, 4480, 2240, 1120, 560, 280, 140, 70, 28, 14, 7, 2.8]
+	//resolutions: [8960, 4480, 2240, 1120, 560, 280, 140, 70, 28, 14, 7, 2.8, 1.4, 0.7, 0.28, 0.14, 0.07]
+});
+
+var projExtent = proj2193.getExtent();
+/*
 view = new ol.View({
 			center: [19412406.33, -5050500.21],
 			zoom: 5
 		});
+		*/
 
-fetch('https://openlayers.org/en/v4.3.3/examples/data/WMTSCapabilities.xml').then(function(response) {
-	return response.text();
-}).then(function(text) {
-	var result = parser.read(text);
-	var options = ol.source.WMTS.optionsFromCapabilities(result, {
-		layer: 'layer-7328',
-		matrixSet: 'EPSG:3857'
-	});
+var tileGrid = new ol.tilegrid.WMTS({
+	origin: ol.extent.getTopLeft(projExtent),
+	extent: projExtent,
+	resolutions: resolutions,
+	matrixIds: matrixIds
+});
 
-	map = new ol.Map({
-		layers: [
-			new ol.layer.Tile({
-				source: new ol.source.OSM(),
-				opacity: 0.7
-			})/*,
-			new ol.layer.Tile({
-				source: source
-			})*/
-		],
-		target: 'map',
-		view: view /*new ol.View({
+var src = new ol.source.WMTS({
+	url: 'https://smap.landcareresearch.co.nz/mapcache/portals/wmts/?',
+	layer: 'topobasemap_notext',
+	matrixSet: 'NZTM2000',
+	tileGrid: tileGrid,
+	format: 'jpeng',
+	style: 'default',
+	units: 'm',
+	tilePixelRatio: 1,
+	attributions: ['Hello Map']
+});
+
+var lyr = new ol.layer.Tile({
+	//title: layer.wmtsName,
+	//type: layer.type,
+	//services: layer.services,
+	source: src,
+	visible: true
+});
+
+map = new ol.Map({
+	layers: [
+		lyr,
+		new ol.layer.Tile({
+			source: source
+		})
+	],
+	target: 'map',
+	view: view /*new ol.View({
 			center: [19412406.33, -5050500.21],
 			zoom: 5
 		})*/
-	});
 });
