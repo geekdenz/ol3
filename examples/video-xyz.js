@@ -16,6 +16,150 @@ goog.require('ol.source.WMTS');
 //});
 //ol.proj.addProjection(projection);
 // -20722863.033888973, -4961350.41607024
+
+ol.VideoTile = function(tileCoord, state, src, crossOrigin, tileLoadFunction) {
+
+  ol.Tile.call(this, tileCoord, state);
+
+  /**
+   * Image URI
+   *
+   * @private
+   * @type {string}
+   */
+  this.src_ = src;
+
+  /**
+   * @private
+   * @type {Image|HTMLCanvasElement|HTMLVideoElement}
+   */
+  this.image_ = document.createElement('video');
+  if (crossOrigin !== null) {
+    this.image_.crossOrigin = crossOrigin;
+  }
+
+  /**
+   * @private
+   * @type {Array.<ol.EventsKey>}
+   */
+  this.imageListenerKeys_ = null;
+
+  /**
+   * @private
+   * @type {ol.TileLoadFunctionType}
+   */
+  this.tileLoadFunction_ = tileLoadFunction;
+
+};
+ol.inherits(ol.VideoTile, ol.ImageTile);
+ol.VideoTile.prototype.handleImageLoad_ = function() {
+  if (this.image_.videoWidth && this.image_.videoHeight) {
+    this.state = ol.TileState.LOADED;
+  } else {
+    this.state = ol.TileState.EMPTY;
+  }
+  this.unlistenImage_();
+  this.changed();
+};
+//oncanplaythrough
+ol.VideoTile.prototype.load = function() {
+  if (this.state == ol.TileState.IDLE || this.state == ol.TileState.ERROR) {
+    this.state = ol.TileState.LOADING;
+    this.changed();
+    this.imageListenerKeys_ = [
+      ol.events.listenOnce(this.image_, ol.events.EventType.ERROR,
+          this.handleImageError_, this),
+      ol.events.listenOnce(this.image_, 'canplaythrough',
+      //ol.events.listenOnce(this.image_, ol.events.EventType.LOAD,
+          this.handleImageLoad_, this)
+    ];
+    this.tileLoadFunction_(this, this.src_);
+  }
+};
+ol.source.VideoXYZ = function(opt_options) {
+  var options = opt_options || {};
+  //options.tileClass = ol.VideoTile;
+  var projection = options.projection !== undefined ?
+    options.projection : 'EPSG:3857';
+
+  var tileGrid = options.tileGrid !== undefined ? options.tileGrid :
+    ol.tilegrid.createXYZ({
+      extent: ol.tilegrid.extentFromProjection(projection),
+      maxZoom: options.maxZoom,
+      minZoom: options.minZoom,
+      tileSize: options.tileSize
+    });
+
+  ol.source.TileImage.call(this, {
+    attributions: options.attributions,
+    cacheSize: options.cacheSize,
+    crossOrigin: options.crossOrigin,
+    logo: options.logo,
+    opaque: options.opaque,
+    projection: projection,
+    reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+    tileGrid: tileGrid,
+    tileLoadFunction: options.tileLoadFunction,
+    tilePixelRatio: options.tilePixelRatio,
+    tileUrlFunction: options.tileUrlFunction || this.tileUrlFunction,
+    url: options.url,
+    urls: options.urls,
+    wrapX: options.wrapX !== undefined ? options.wrapX : true,
+	tileClass: ol.VideoTile
+  });
+
+};
+ol.inherits(ol.source.VideoXYZ, ol.source.XYZ);
+/*
+ol.source.VideoXYZ.prototype.tileLoadFunction = function(tile, url) {
+
+}
+*/
+ol.source.VideoXYZ.prototype.tileUrlFunction = function(coord) {
+	//console.log('COORD', coord);
+	//var url = getUrl(coord);
+	var url = 'http://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
+	//         http://npm.landcareresearch.co.nz/videos/ 00/000/000/001/000/000/001.mp4
+	var x = coord[1];//-coord[2] - 1;
+	//var y = -coord[2] - 1;
+	var y = -coord[2];
+	var z = coord[0];//-coord[2] - 1;
+	var myUrl = url.replace('{z}', z.padLeft(2)).replace('{x}', x.padLeft(3)).replace('{y}', y.padLeft(3));
+	tiles['' + x] = tiles['' + x] || {};
+	tiles['' + x]['' + y] = tiles['' + x]['' + y] || {};
+	tiles['' + x]['' + y]['' + z] = myUrl;
+	console.log('COORD', x,y,z);
+	//return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; // blank image
+	return myUrl;
+};
+ol.layer.VideoTile = function(opt_options) {
+  var options = opt_options ? opt_options : {};
+
+  var baseOptions = ol.obj.assign({}, options);
+
+  delete baseOptions.preload;
+  delete baseOptions.useInterimTilesOnError;
+  ol.layer.Layer.call(this,  /** @type {olx.layer.LayerOptions} */ (baseOptions));
+
+  this.setPreload(options.preload !== undefined ? options.preload : 0);
+  this.setUseInterimTilesOnError(options.useInterimTilesOnError !== undefined ?
+    options.useInterimTilesOnError : true);
+
+  /**
+   * The layer type.
+   * @protected
+   * @type {ol.LayerType}
+   */
+  this.type = ol.LayerType.TILE;
+
+	this.on('postcompose', ol.layer.VideoTile.render, this);
+};
+ol.layer.VideoTile.render = function(event) {
+	var source = this.getSource();
+	//console.log('render', event.frameState);
+	console.log('render', source);
+};
+ol.inherits(ol.layer.VideoTile, ol.layer.Tile);
 Number.prototype.padLeft = function (n,str){
     return Array(n-String(this).length+1).join(str||'0')+this;
 }
@@ -32,7 +176,9 @@ function getUrl(coord) {
 	tiles['' + x] = tiles['' + x] || {};
 	tiles['' + x]['' + y] = tiles['' + x]['' + y] || {};
 	tiles['' + x]['' + y]['' + z] = myUrl;
+	console.log('COORD', x,y,z);
 	return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; // blank image
+	//return myUrl;
 }
 function pad(n, num) {
     var len = (""+n).length;
@@ -73,9 +219,10 @@ var resolutions = [8960, 4480, 2240, 1120, 560, 280, 140, 70, 28, 14, 7, 2.8, 1.
 	matrixIds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 var originCoord = [-4020900.0, 19998100];
 */
+var extent = [1000000, 4700000.0000001, 2200000, 6300000];
 var proj2193 = new ol.proj.Projection({
   code: 'EPSG:2193',
-  //extent: extent,
+  extent: extent,
   units: 'm'
 });
 
@@ -91,7 +238,6 @@ var view = new ol.View({
 	resolutions: resolutions
 });
 
-var extent = [1000000, 4700000.0000001, 2200000, 6300000];
 var wmsSource = new ol.source.TileWMS({
 		url: 'http://maps.scinfo.org.nz/cached/?',
 		params: {'LAYERS': 'landscape_eco_painted_relief', 'TILED': true, VERSION: '1.1.1'},
@@ -102,8 +248,8 @@ var wmsLayer = new ol.layer.Tile({
 	extent: extent,
 	source: wmsSource
 });
-var source = new ol.source.XYZ({
-	//crossOrigin: 'anonymous',
+var source = new ol.source.VideoXYZ({
+	crossOrigin: 'anonymous',
 	url: 'http://npm.landcareresearch.co.nz/videos/{z}/{x}/{y}.mp4',
 	/*
 	tileLoadFunction: function(imageTile, src) {
@@ -112,11 +258,11 @@ var source = new ol.source.XYZ({
 		var y = -coord[2] - 1;
 		imageTile.getImage().src = getUrl(coord);
 	},
-	*/
 	tileUrlFunction: function(coord) {
 		//console.log('COORD', coord);
 		return getUrl(coord);
 	},
+	*/
 	projection: proj2193,
 	tileGrid: new ol.tilegrid.TileGrid({
 		origin: ol.extent.getTopLeft(extent),
@@ -179,7 +325,7 @@ var lyr = new ol.layer.Tile({
 });
 */
 
-var videoLayer = new ol.layer.Tile({
+var videoLayer = new ol.layer.VideoTile({
 			source: source
 		});
 map = new ol.Map({
@@ -196,7 +342,7 @@ videoLayer.on('postcompose', function(event) {
 	var frameState = event.frameState;
 	var resolution = frameState.viewState.resolution;
 	//console.log('FS', frameState, resolution);
-	console.log('postcompose', event);
+	//console.log('postcompose', event);
 	//var origin = map.getPixelFromCoordinate(topLeft);
 
 	/*
