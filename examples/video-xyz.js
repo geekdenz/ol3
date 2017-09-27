@@ -158,6 +158,10 @@ ol.layer.VideoTile.render = function(event) {
 	var source = this.getSource();
 	//console.log('render', event.frameState);
 	console.log('render', source);
+	/**
+	 * Look at */
+	//source.getTile(0, 0, -1).getImage()
+	//event.frameState.usedTiles
 };
 ol.inherits(ol.layer.VideoTile, ol.layer.Tile);
 Number.prototype.padLeft = function (n,str){
