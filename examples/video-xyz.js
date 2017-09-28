@@ -121,17 +121,10 @@ ol.source.VideoXYZ.prototype.tileLoadFunction = function(tile, url) {
 */
 ol.source.VideoXYZ.prototype.tileUrlFunction = function(coord) {
 	var url = 'https://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
-	//         http://npm.landcareresearch.co.nz/videos/ 00/000/000/001/000/000/001.mp4
-	//var y = -coord[2] - 1;
-	var y = coord[2];//-coord[2] - 1;
+	var y = coord[2];
 	var x = coord[1];
-	var z = coord[0];//-coord[2] - 1;
+	var z = coord[0];
 	var myUrl = url.replace('{z}', z.padLeft(2)).replace('{x}', x.padLeft(3)).replace('{y}', y.padLeft(3));
-	//tiles['' + x] = tiles['' + x] || {};
-	//tiles['' + x]['' + y] = tiles['' + x]['' + y] || {};
-	//tiles['' + x]['' + y]['' + z] = myUrl;
-	console.log('COORD', coord);
-	//return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; // blank image
 	return myUrl;
 };
 ol.layer.VideoTile = function(opt_options) {
@@ -154,20 +147,13 @@ ol.layer.VideoTile = function(opt_options) {
    * @type {ol.LayerType}
    */
   this.type = ol.LayerType.TILE;
+	this.paused = false;
 
-	//this.on('postcompose', ol.layer.VideoTile.render, this);
-	//this.on('precompose', ol.layer.VideoTile.render, this);
-	this.on('precompose', function(event) {
-		//view.setHint(ol.ViewHint.ANIMATING, 1);
-		//this.setPreload(9999);
-		//console.log(event)
-	}, this);
-	var count = 0;
+	var paused = this.isPaused();
 	this.on('postcompose', function(event) {
 		//view.setHint(ol.ViewHint.ANIMATING, -1);
 		var frameState = event.frameState;
-		//console.log('frameState', frameState);
-		frameState.animate = true;
+		//frameState.animate = true;
 		var source = this.getSource();
 		var tileGrid = source.getTileGrid();
 		var extent = frameState.extent;
@@ -179,17 +165,7 @@ ol.layer.VideoTile = function(opt_options) {
 		var ctx = event.context;
 		var tileSize = source.tileGrid.getTileSize();
 		var halfSize = tileSize / 2;
-		var minTime = -1;
-		if (count++ % 30 == 0) {
-			tileGrid.forEachTileCoord(extent, view.getZoom(), function(tileCoord) {
-				var tile = source.getTile(tileCoord[0], tileCoord[1], tileCoord[2], 1, proj2193);
-				var video = tile.getImage();
-				var time = video.currentTime;
-				minTime = Math.min(time, minTime);
-			});
-		}
 		tileGrid.forEachTileCoord(extent, view.getZoom(), function(tileCoord) {
-			//console.log('tileCoord', tileCoord);
 			var tile = source.getTile(tileCoord[0], tileCoord[1], tileCoord[2], 1, proj2193);
 			var tileCoordCenter = source.tileGrid.getTileCoordCenter(tileCoord);
 			var middlePixel = map.getPixelFromCoordinate(tileCoordCenter);
@@ -198,46 +174,33 @@ ol.layer.VideoTile = function(opt_options) {
 			ctx.scale(frameState.pixelRatio, frameState.pixelRatio);
 			ctx.translate(topLeft[0], topLeft[1]);
 			var video = tile.getImage();
-			if (count % 30 == 0) {
-				//video.currentTime = minTime;
+			if (paused) {
+				video.pause();
 			}
 			ctx.drawImage(video, 0, 0);
 			ctx.restore();
 		})
 	});
 };
-ol.layer.VideoTile.render = function(event) {
-	var source = this.getSource();
-	//console.log('render', event.frameState);
-	//console.log('render', source);
-	/**
-	 * Look at */
-	//source.getTile(0, 0, -1).getImage()
-	//event.frameState.usedTiles
-		//event.frameState.viewHints[ol.ViewHint.ANIMATING] = true;
-};
 ol.inherits(ol.layer.VideoTile, ol.layer.Tile);
+ol.layer.VideoTile.prototype.isPaused = function() {
+	return this.paused;
+};
+ol.layer.VideoTile.prototype.pause = function() {
+	this.paused = true;
+}
+
+
 Number.prototype.padLeft = function (n,str){
     return Array(n-String(this).length+1).join(str||'0')+this;
 }
-//var minx = Number.MAX_VALUE, maxx = Number.MIN_VALUE, miny 
 var tiles = {};
 function getUrl(coord) {
 	var url = 'https://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
-	//         http://npm.landcareresearch.co.nz/videos/ 00/000/000/001/000/000/001.mp4
-	var x = coord[1];//-coord[2] - 1;
-	//var y = -coord[2] - 1;
-	var y = -coord[2];
-	var z = coord[0];//-coord[2] - 1;
-	x = coord[1];
-	y = coord[2];
-	z = coord[0];
+	var x = coord[1];
+	var y = coord[2];
+	var z = coord[0];
 	var myUrl = url.replace('{z}', z.padLeft(2)).replace('{x}', x.padLeft(3)).replace('{y}', y.padLeft(3));
-	//tiles['' + x] = tiles['' + x] || {};
-	//tiles['' + x]['' + y] = tiles['' + x]['' + y] || {};
-	//tiles['' + x]['' + y]['' + z] = myUrl;
-	console.log('COORD', x,y,z);
-	//return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; // blank image
 	return myUrl;
 }
 function pad(n, num) {
@@ -274,11 +237,6 @@ function reverse(ar) {
   return reversed;
 }
 
-/*
-var resolutions = [8960, 4480, 2240, 1120, 560, 280, 140, 70, 28, 14, 7, 2.8, 1.4, 0.7, 0.28, 0.14, 0.07],
-	matrixIds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-var originCoord = [-4020900.0, 19998100];
-*/
 var extent = [1000000, 4700000.0000001, 2200000, 6300000];
 var proj2193 = new ol.proj.Projection({
   code: 'EPSG:2193',
@@ -332,58 +290,6 @@ var source = new ol.source.VideoXYZ({
 });
 
 var map;
-//proj4.defs("EPSG:2193","+proj=tmerc +lat_0=0 +lon_0=173 +k=0.9996 +x_0=1600000 +y_0=10000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +axis=neu");
-
-// Set transform functions, taken from proj4
-/*
-var forward = proj4('EPSG:4326','EPSG:2193').forward,
-	inverse = proj4('EPSG:4326','EPSG:2193').inverse;
-	*/
-
-// Create new projection
-//var proj2193 = new OpenLayers.Projection("EPSG:2193");
-
-
-// Add transforms
-/*
-ol.proj.addCoordinateTransforms('EPSG:4326', proj2193,
-    forward,
-    inverse
-);
-var tileGridOptions = {
-	origin: originCoord,
-	resolutions: resolutions,
-	matrixIds: matrixIds
-};
-var tileGrid = new ol.tilegrid.WMTS(tileGridOptions);
-*/
-//var resolutions = [2822.2278666779557, 1411.1139333389779, 705.5569666694889, 352.77848333474446, 176.38924166737223, 88.19462083368612, 35.277848333474445, 17.638924166737223, 8.819462083368611, 3.5277848333474453];
-
-/*
-var tileGrid = new ol.tilegrid.WMTS({
-	origin: ol.extent.getTopLeft(projExtent),
-	extent: projExtent,
-	resolutions: resolutions,
-	matrixIds: matrixIds
-});
-
-var src = new ol.source.WMTS({
-	url: 'https://smap.landcareresearch.co.nz/mapcache/portals/wmts/?',
-	layer: 'topobasemap_notext',
-	matrixSet: 'NZTM2000',
-	tileGrid: tileGrid,
-	format: 'jpeng',
-	style: 'default',
-	units: 'm',
-	tilePixelRatio: 1,
-	attributions: ['Hello Map']
-});
-
-var lyr = new ol.layer.Tile({
-	source: src,
-	visible: true
-});
-*/
 
 var videoLayer = new ol.layer.VideoTile({
 	source: source,
@@ -398,24 +304,17 @@ map = new ol.Map({
 	target: 'map',
 	view: view
 });
+/*
 videoLayer.on('postcompose', function(event) {
-
 	var frameState = event.frameState;
 	var resolution = frameState.viewState.resolution;
-	//console.log('FS', frameState, resolution);
-	//console.log('postcompose', event);
-	//var origin = map.getPixelFromCoordinate(topLeft);
-
-	/*
-
-  var context = event.context;
-  context.save();
-
-  context.scale(frameState.pixelRatio, frameState.pixelRatio);
-  context.translate(origin[0], origin[1]);
-  context.rotate(rotation);
-  context.drawImage(video, 0, 0, dx / resolution, height / resolution);
-
-  context.restore();
-  */
 });
+*/
+var f = function() {
+	map.render();
+	requestAnimationFrame(f);
+};
+f();
+document.getElementById('pause').addEventListener('click', function() {
+	videoLayer.pause();
+})
