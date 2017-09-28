@@ -34,6 +34,8 @@ ol.VideoTile = function(tileCoord, state, src, crossOrigin, tileLoadFunction) {
    * @type {Image|HTMLCanvasElement|HTMLVideoElement}
    */
   this.image_ = document.createElement('video');
+	this.image_.autoplay = 'autoplay';
+	this.image_.loop = 'loop';
   if (crossOrigin !== null) {
     this.image_.crossOrigin = crossOrigin;
   }
@@ -54,6 +56,8 @@ ol.VideoTile = function(tileCoord, state, src, crossOrigin, tileLoadFunction) {
 ol.inherits(ol.VideoTile, ol.ImageTile);
 ol.VideoTile.prototype.handleImageLoad_ = function() {
   if (this.image_.videoWidth && this.image_.videoHeight) {
+	this.image_.width = this.image_.videoWidth;
+	this.image_.height = this.image_.videoHeight;
     this.state = ol.TileState.LOADED;
   } else {
     this.state = ol.TileState.EMPTY;
@@ -116,19 +120,17 @@ ol.source.VideoXYZ.prototype.tileLoadFunction = function(tile, url) {
 }
 */
 ol.source.VideoXYZ.prototype.tileUrlFunction = function(coord) {
-	//console.log('COORD', coord);
-	//var url = getUrl(coord);
 	var url = 'http://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
 	//         http://npm.landcareresearch.co.nz/videos/ 00/000/000/001/000/000/001.mp4
-	var x = coord[1];//-coord[2] - 1;
 	//var y = -coord[2] - 1;
-	var y = -coord[2];
+	var y = coord[2];//-coord[2] - 1;
+	var x = coord[1];
 	var z = coord[0];//-coord[2] - 1;
 	var myUrl = url.replace('{z}', z.padLeft(2)).replace('{x}', x.padLeft(3)).replace('{y}', y.padLeft(3));
-	tiles['' + x] = tiles['' + x] || {};
-	tiles['' + x]['' + y] = tiles['' + x]['' + y] || {};
-	tiles['' + x]['' + y]['' + z] = myUrl;
-	console.log('COORD', x,y,z);
+	//tiles['' + x] = tiles['' + x] || {};
+	//tiles['' + x]['' + y] = tiles['' + x]['' + y] || {};
+	//tiles['' + x]['' + y]['' + z] = myUrl;
+	console.log('COORD', coord);
 	//return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; // blank image
 	return myUrl;
 };
@@ -139,6 +141,7 @@ ol.layer.VideoTile = function(opt_options) {
 
   delete baseOptions.preload;
   delete baseOptions.useInterimTilesOnError;
+	//baseOptions.preload = 9999;
   ol.layer.Layer.call(this,  /** @type {olx.layer.LayerOptions} */ (baseOptions));
 
   this.setPreload(options.preload !== undefined ? options.preload : 0);
@@ -152,16 +155,32 @@ ol.layer.VideoTile = function(opt_options) {
    */
   this.type = ol.LayerType.TILE;
 
-	this.on('postcompose', ol.layer.VideoTile.render, this);
+	//this.on('postcompose', ol.layer.VideoTile.render, this);
+	//this.on('precompose', ol.layer.VideoTile.render, this);
+	this.on('precompose', function(event) {
+		//view.setHint(ol.ViewHint.ANIMATING, 1);
+		//this.setPreload(9999);
+		//console.log(event)
+	}, this);
+	this.on('postcompose', function(event) {
+		//view.setHint(ol.ViewHint.ANIMATING, -1);
+		var frameState = event.frameState;
+		console.log('frameState', frameState);
+		frameState.animate = true;
+		var source = this.getSource();
+		var tileGrid = source.getTileGrid();
+		var extent = frameState.extent;
+	});
 };
 ol.layer.VideoTile.render = function(event) {
 	var source = this.getSource();
 	//console.log('render', event.frameState);
-	console.log('render', source);
+	//console.log('render', source);
 	/**
 	 * Look at */
 	//source.getTile(0, 0, -1).getImage()
 	//event.frameState.usedTiles
+		//event.frameState.viewHints[ol.ViewHint.ANIMATING] = true;
 };
 ol.inherits(ol.layer.VideoTile, ol.layer.Tile);
 Number.prototype.padLeft = function (n,str){
@@ -176,13 +195,16 @@ function getUrl(coord) {
 	//var y = -coord[2] - 1;
 	var y = -coord[2];
 	var z = coord[0];//-coord[2] - 1;
+	x = coord[1];
+	y = coord[2];
+	z = coord[0];
 	var myUrl = url.replace('{z}', z.padLeft(2)).replace('{x}', x.padLeft(3)).replace('{y}', y.padLeft(3));
-	tiles['' + x] = tiles['' + x] || {};
-	tiles['' + x]['' + y] = tiles['' + x]['' + y] || {};
-	tiles['' + x]['' + y]['' + z] = myUrl;
+	//tiles['' + x] = tiles['' + x] || {};
+	//tiles['' + x]['' + y] = tiles['' + x]['' + y] || {};
+	//tiles['' + x]['' + y]['' + z] = myUrl;
 	console.log('COORD', x,y,z);
-	return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; // blank image
-	//return myUrl;
+	//return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; // blank image
+	return myUrl;
 }
 function pad(n, num) {
     var len = (""+n).length;
@@ -269,7 +291,7 @@ var source = new ol.source.VideoXYZ({
 	*/
 	projection: proj2193,
 	tileGrid: new ol.tilegrid.TileGrid({
-		origin: ol.extent.getTopLeft(extent),
+		origin: ol.extent.getBottomLeft(extent),
 		extent: extent,
 		resolutions: resolutions
 	})
@@ -330,8 +352,9 @@ var lyr = new ol.layer.Tile({
 */
 
 var videoLayer = new ol.layer.VideoTile({
-			source: source
-		});
+	source: source,
+	extent: extent
+});
 map = new ol.Map({
 	layers: [
 		//lyr,
