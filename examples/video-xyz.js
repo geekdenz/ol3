@@ -120,7 +120,7 @@ ol.source.VideoXYZ.prototype.tileLoadFunction = function(tile, url) {
 }
 */
 ol.source.VideoXYZ.prototype.tileUrlFunction = function(coord) {
-	var url = 'http://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
+	var url = 'https://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
 	//         http://npm.landcareresearch.co.nz/videos/ 00/000/000/001/000/000/001.mp4
 	//var y = -coord[2] - 1;
 	var y = coord[2];//-coord[2] - 1;
@@ -162,14 +162,48 @@ ol.layer.VideoTile = function(opt_options) {
 		//this.setPreload(9999);
 		//console.log(event)
 	}, this);
+	var count = 0;
 	this.on('postcompose', function(event) {
 		//view.setHint(ol.ViewHint.ANIMATING, -1);
 		var frameState = event.frameState;
-		console.log('frameState', frameState);
+		//console.log('frameState', frameState);
 		frameState.animate = true;
 		var source = this.getSource();
 		var tileGrid = source.getTileGrid();
 		var extent = frameState.extent;
+		var tileRange = tileGrid.getTileRangeForExtentAndZ(frameState.extent, view.getZoom());
+		var minx = tileRange.minX;
+		var miny = tileRange.minY;
+		var maxx = tileRange.maxX;
+		var maxy = tileRange.maxY;
+		var ctx = event.context;
+		var tileSize = source.tileGrid.getTileSize();
+		var halfSize = tileSize / 2;
+		var minTime = -1;
+		if (count++ % 30 == 0) {
+			tileGrid.forEachTileCoord(extent, view.getZoom(), function(tileCoord) {
+				var tile = source.getTile(tileCoord[0], tileCoord[1], tileCoord[2], 1, proj2193);
+				var video = tile.getImage();
+				var time = video.currentTime;
+				minTime = Math.min(time, minTime);
+			});
+		}
+		tileGrid.forEachTileCoord(extent, view.getZoom(), function(tileCoord) {
+			//console.log('tileCoord', tileCoord);
+			var tile = source.getTile(tileCoord[0], tileCoord[1], tileCoord[2], 1, proj2193);
+			var tileCoordCenter = source.tileGrid.getTileCoordCenter(tileCoord);
+			var middlePixel = map.getPixelFromCoordinate(tileCoordCenter);
+			var topLeft = ol.coordinate.add(middlePixel, [-halfSize, -halfSize]);
+			ctx.save();
+			ctx.scale(frameState.pixelRatio, frameState.pixelRatio);
+			ctx.translate(topLeft[0], topLeft[1]);
+			var video = tile.getImage();
+			if (count % 30 == 0) {
+				//video.currentTime = minTime;
+			}
+			ctx.drawImage(video, 0, 0);
+			ctx.restore();
+		})
 	});
 };
 ol.layer.VideoTile.render = function(event) {
@@ -189,7 +223,7 @@ Number.prototype.padLeft = function (n,str){
 //var minx = Number.MAX_VALUE, maxx = Number.MIN_VALUE, miny 
 var tiles = {};
 function getUrl(coord) {
-	var url = 'http://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
+	var url = 'https://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
 	//         http://npm.landcareresearch.co.nz/videos/ 00/000/000/001/000/000/001.mp4
 	var x = coord[1];//-coord[2] - 1;
 	//var y = -coord[2] - 1;
@@ -221,7 +255,7 @@ function createVideoUrl(coord) {
     if (x < 0 || y < 0) {
         return null;
     }
-    var url = 'http://npm.landcareresearch.co.nz/videos/';
+    var url = 'https://npm.landcareresearch.co.nz/videos/';
     var s = '0'+ z +'/'+ 
             pad(Math.floor(x/1000000),3) +'/'+ 
             pad(Math.floor(x/1000) % 1000,3) +'/'+ 
@@ -276,7 +310,7 @@ var wmsLayer = new ol.layer.Tile({
 });
 var source = new ol.source.VideoXYZ({
 	crossOrigin: 'anonymous',
-	url: 'http://npm.landcareresearch.co.nz/videos/{z}/{x}/{y}.mp4',
+	url: 'https://npm.landcareresearch.co.nz/videos/{z}/{x}/{y}.mp4',
 	/*
 	tileLoadFunction: function(imageTile, src) {
 		//console.log('imageTile',imageTile.tileCoord)
