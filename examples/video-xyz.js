@@ -54,11 +54,17 @@ ol.VideoTile = function(tileCoord, state, src, crossOrigin, tileLoadFunction) {
 
 };
 ol.inherits(ol.VideoTile, ol.ImageTile);
+var currentTime = 0;
+var videos = [];
+function reset() {
+	videos.map((v) => v.currentTime = 1/6);
+}
 ol.VideoTile.prototype.handleImageLoad_ = function() {
   if (this.image_.videoWidth && this.image_.videoHeight) {
 	this.image_.width = this.image_.videoWidth;
 	this.image_.height = this.image_.videoHeight;
     this.state = ol.TileState.LOADED;
+	  reset();
   } else {
     this.state = ol.TileState.EMPTY;
   }
@@ -73,7 +79,7 @@ ol.VideoTile.prototype.load = function() {
     this.imageListenerKeys_ = [
       ol.events.listenOnce(this.image_, ol.events.EventType.ERROR,
           this.handleImageError_, this),
-      ol.events.listenOnce(this.image_, 'canplaythrough',
+      ol.events.listenOnce(this.image_, 'canplay',
       //ol.events.listenOnce(this.image_, ol.events.EventType.LOAD,
           this.handleImageLoad_, this)
     ];
@@ -125,6 +131,7 @@ ol.source.VideoXYZ.prototype.tileUrlFunction = function(coord) {
 	var x = coord[1];
 	var z = coord[0];
 	var myUrl = url.replace('{z}', z.padLeft(2)).replace('{x}', x.padLeft(3)).replace('{y}', y.padLeft(3));
+	//return 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
 	return myUrl;
 };
 ol.layer.VideoTile = function(opt_options) {
@@ -149,38 +156,35 @@ ol.layer.VideoTile = function(opt_options) {
   this.type = ol.LayerType.TILE;
 	this.paused = false;
 
-	var paused = this.isPaused();
+	//var videos = [];
+	//var highestTime = 0;
+	//var paused = this.isPaused();
 	this.on('postcompose', function(event) {
-		//view.setHint(ol.ViewHint.ANIMATING, -1);
 		var frameState = event.frameState;
-		//frameState.animate = true;
 		var source = this.getSource();
 		var tileGrid = source.getTileGrid();
 		var extent = frameState.extent;
-		var tileRange = tileGrid.getTileRangeForExtentAndZ(frameState.extent, view.getZoom());
-		var minx = tileRange.minX;
-		var miny = tileRange.minY;
-		var maxx = tileRange.maxX;
-		var maxy = tileRange.maxY;
 		var ctx = event.context;
 		var tileSize = source.tileGrid.getTileSize();
 		var halfSize = tileSize / 2;
+		videos.length = 0;
+		ctx.save();
+		ctx.scale(frameState.pixelRatio, frameState.pixelRatio);
 		tileGrid.forEachTileCoord(extent, view.getZoom(), function(tileCoord) {
-			var tile = source.getTile(tileCoord[0], tileCoord[1], tileCoord[2], 1, proj2193);
 			var tileCoordCenter = source.tileGrid.getTileCoordCenter(tileCoord);
 			var middlePixel = map.getPixelFromCoordinate(tileCoordCenter);
 			var topLeft = ol.coordinate.add(middlePixel, [-halfSize, -halfSize]);
-			ctx.save();
-			ctx.scale(frameState.pixelRatio, frameState.pixelRatio);
-			ctx.translate(topLeft[0], topLeft[1]);
+			var tile = source.getTile(tileCoord[0], tileCoord[1], tileCoord[2], 1, proj2193);
 			var video = tile.getImage();
-			if (paused) {
-				video.pause();
-			}
-			ctx.drawImage(video, 0, 0);
-			ctx.restore();
-		})
+			currentTime = video.currentTime;
+			//video.currentTime += 1000/30;
+			videos.push(video);
+			//highestTime = Math.max(video.currentTime, highestTime);
+			ctx.drawImage(video, topLeft[0], topLeft[1]);
+		});
+		ctx.restore();
 	});
+	//setInterval(() => videos.map((v) => v.currentTime = highestTime), 1000);
 };
 ol.inherits(ol.layer.VideoTile, ol.layer.Tile);
 ol.layer.VideoTile.prototype.isPaused = function() {
@@ -310,11 +314,26 @@ videoLayer.on('postcompose', function(event) {
 	var resolution = frameState.viewState.resolution;
 });
 */
+var timeSlider = document.getElementById('time');
+var time = 0;
 var f = function() {
 	map.render();
-	requestAnimationFrame(f);
+	//requestAnimationFrame(f);
+	var index = videos.length - 1;
+	//time = videos[index] && videos[index].currentTime || 0;
+	time += 1/30;
+	time %= 30;
+	//console.log(time);
+	timeSlider.value = time;
 };
+setInterval(f, 1000/30);
+/*
 f();
-document.getElementById('pause').addEventListener('click', function() {
-	videoLayer.pause();
-})
+map.on('moveend', function() {
+	//videos.map((v) => v.currentTime = videos[videos.length - 1].currentTime);
+});
+*/
+document.getElementById('reset').addEventListener('click', reset);
+document.getElementById('pause').addEventListener('click', () => videos.map((v) => v.pause()));
+document.getElementById('start').addEventListener('click', () => videos.map((v) => v.play()));
+
