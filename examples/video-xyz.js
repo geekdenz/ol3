@@ -33,9 +33,14 @@ ol.VideoTile = function(tileCoord, state, src, crossOrigin, tileLoadFunction) {
    * @private
    * @type {Image|HTMLCanvasElement|HTMLVideoElement}
    */
-  this.image_ = document.createElement('video');
-	this.image_.autoplay = 'autoplay';
-	this.image_.loop = 'loop';
+	//this.image_ = new Image();
+	//let reused = ol.VideoTile.reuseTiles.pop();
+	this.image_ = ol.VideoTile.reuseTiles.pop() || document.createElement('video');
+	//this.image_ = document.createElement('video');
+	this.image_.preload = 'metadata';
+	this.image_.autoplay = true;
+	this.image_.loop = true;
+	//this.image_.src = '';
   if (crossOrigin !== null) {
     this.image_.crossOrigin = crossOrigin;
   }
@@ -54,6 +59,24 @@ ol.VideoTile = function(tileCoord, state, src, crossOrigin, tileLoadFunction) {
 
 };
 ol.inherits(ol.VideoTile, ol.ImageTile);
+ol.VideoTile.reuseTiles = [];
+/**
+ * @inheritDoc
+ */
+ol.VideoTile.prototype.disposeInternal = function() {
+  if (this.state == ol.TileState.LOADING) {
+    this.unlistenImage_();
+    this.image_.src = 'data:video/mp4;base64,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';
+	  //this.image_ = null;
+  }
+  if (this.interimTile) {
+    this.interimTile.dispose();
+  }
+  this.state = ol.TileState.ABORT;
+  this.changed();
+	  ol.VideoTile.reuseTiles.push(this.image_);
+  ol.Tile.prototype.disposeInternal.call(this);
+};
 /*
 function reset() {
 	videos.map((v) => v.currentTime = 1/6);
@@ -64,8 +87,8 @@ ol.VideoTile.prototype.handleImageLoad_ = function() {
 	this.image_.width = this.image_.videoWidth;
 	this.image_.height = this.image_.videoHeight;
     this.state = ol.TileState.LOADED;
-	  //this.image_.play();
-	ol.events.listen(this.image_, 'timeupdate', this.timeUpdated, this);
+	  this.image_.play();
+	//ol.events.listen(this.image_, 'timeupdate', this.timeUpdated, this);
 	  //reset();
   } else {
     this.state = ol.TileState.EMPTY;
@@ -146,6 +169,7 @@ ol.source.VideoXYZ = function(opt_options) {
       minZoom: options.minZoom,
       tileSize: options.tileSize
     });
+	options.cacheSize = 1;
 
   ol.source.TileImage.call(this, {
     attributions: options.attributions,
@@ -173,7 +197,8 @@ ol.source.VideoXYZ.prototype.tileLoadFunction = function(tile, url) {
 }
 */
 ol.source.VideoXYZ.prototype.tileUrlFunction = function(coord) {
-	var url = 'https://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
+	//var url = 'https://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
+	var url = 'http://172.20.89.233/{z}/000/000/{x}/000/000/{y}.webm';
 	var y = coord[2];
 	var x = coord[1];
 	var z = coord[0];
@@ -209,15 +234,18 @@ ol.layer.VideoTile = function(opt_options) {
 	//var paused = this.isPaused();
 	var that = this;
 	this.timePerFrame = 1/60;
-	this.on('postcompose', function(event) {
+	var source = this.getSource();
+	var tileGrid = source.getTileGrid();
+	let postCompose = function(event) {
 		var frameState = event.frameState;
-		var source = this.getSource();
-		var tileGrid = source.getTileGrid();
 		var extent = frameState.extent;
 		var ctx = event.context;
 		var tileSize = source.tileGrid.getTileSize();
 		var halfSize = tileSize / 2;
-		that.videos.length = 0;
+		//delete that.videos;
+		//that.videos.map((v) => ol.VideoTile.reuseTiles.push(v));
+		//ol.VideoTile.reuseTiles = that.videos;
+		that.videos = [];
 		ctx.save();
 		ctx.scale(frameState.pixelRatio, frameState.pixelRatio);
 		tileGrid.forEachTileCoord(extent, view.getZoom(), function(tileCoord) {
@@ -235,7 +263,9 @@ ol.layer.VideoTile = function(opt_options) {
 			ctx.drawImage(video, topLeft[0], topLeft[1]);
 		});
 		ctx.restore();
-	});
+		//source.canExpireCache();
+	};
+	//this.on('postcompose', postCompose);
 	//setInterval(() => videos.map((v) => v.currentTime = highestTime), 1000);
 };
 ol.inherits(ol.layer.VideoTile, ol.layer.Tile);
