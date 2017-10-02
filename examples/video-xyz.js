@@ -74,7 +74,7 @@ ol.VideoTile.prototype.disposeInternal = function() {
   }
   this.state = ol.TileState.ABORT;
   this.changed();
-	  ol.VideoTile.reuseTiles.push(this.image_);
+	  ol.VideoTile.reuseTiles.push(this.image_); // necessary for chrome not to crash and reuse video elements!
   ol.Tile.prototype.disposeInternal.call(this);
 };
 /*
@@ -104,8 +104,8 @@ ol.VideoTile.prototype.load = function() {
     this.imageListenerKeys_ = [
       ol.events.listenOnce(this.image_, ol.events.EventType.ERROR,
           this.handleImageError_, this),
-	//ol.events.listen(this.image_, 'progress', this.progress, this),
-	//ol.events.listenOnce(this.image_, 'loadeddata', this.loadedData, this),
+	//ol.events.listen(this.image_, 'timeupdate', this.progress, this),
+	//ol.events.listen(this.image_, 'loadeddata', this.loadedData, this),
 	//ol.events.listen(this.image_, 'timeupdate', this.timeUpdated, this),
       ol.events.listenOnce(this.image_, 'canplay',
       //ol.events.listenOnce(this.image_, ol.events.EventType.LOAD,
@@ -151,6 +151,7 @@ ol.VideoTile.prototype.timeUpdated = function(event) {
 	}
 };
 ol.VideoTile.prototype.progress = function(event) {
+	console.log('time')
 	return this.someLoaded(event, false);
 };
 ol.VideoTile.prototype.loadedData = function(event) {
@@ -253,19 +254,25 @@ ol.layer.VideoTile = function(opt_options) {
 			var middlePixel = map.getPixelFromCoordinate(tileCoordCenter);
 			var topLeft = ol.coordinate.add(middlePixel, [-halfSize, -halfSize]);
 			var tile = source.getTile(tileCoord[0], tileCoord[1], tileCoord[2], 1, proj2193);
+			if (tile.state !== ol.TileState.LOADED) {
+				return;
+			}
 			var video = tile.getImage();
-			//that.currentTime = Math.max(video.currentTime, that.currentTime);
-			//that.currentDate = (new Date()).getTime();
+			//video.pause();
+			that.currentTime = video.currentTime; //Math.max(video.currentTime, that.currentTime);
+			that.currentDate = (new Date()).getTime();
 			//video.currentTime += 1000/30;
 			that.videos.push(video);
 			tile.layer = that;
 			//highestTime = Math.max(video.currentTime, highestTime);
 			ctx.drawImage(video, topLeft[0], topLeft[1]);
+			//video.play();
 		});
 		ctx.restore();
 		//source.canExpireCache();
+		window.videos = that.videos;
 	};
-	//this.on('postcompose', postCompose);
+	this.on('postcompose', postCompose);
 	//setInterval(() => videos.map((v) => v.currentTime = highestTime), 1000);
 };
 ol.inherits(ol.layer.VideoTile, ol.layer.Tile);
@@ -275,6 +282,18 @@ ol.layer.VideoTile.prototype.isPaused = function() {
 ol.layer.VideoTile.prototype.pause = function() {
 	this.paused = true;
 }
+ol.layer.VideoTile.prototype.sync = function() {
+	let videos = this.videos;
+	if (!videos) {
+		return;
+	}
+	let delta = 0.3;
+	let duration = 29;
+	let maxTime = videos.map((v) => v.currentTime)
+		.reduce((a, t) => Math.max(a, t > 0 ? t % 29 : 0));
+	if (maxTime < delta || maxTime > duration - delta) return;
+	videos.map((v) => v.currentTime = maxTime);
+};
 
 
 Number.prototype.padLeft = function (n,str){
@@ -414,14 +433,19 @@ var f = function() {
 	//console.log(time);
 	//timeSlider.value = time;
 };
+let g = function() {
+	videoLayer.sync();
+}
+//setInterval(g, 1000);
 /*
 setInterval(f, 1000/30);
 */
 f();
-/*
 map.on('moveend', function() {
 	//videos.map((v) => v.currentTime = videos[videos.length - 1].currentTime);
+	if (window.videos) window.videos.map((v) => v.currentTime = 0);
 });
+/*
 */
 //document.getElementById('reset').addEventListener('click', reset);
 //document.getElementById('pause').addEventListener('click', () => videos.map((v) => v.pause()));
