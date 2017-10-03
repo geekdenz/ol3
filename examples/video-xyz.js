@@ -87,9 +87,10 @@ ol.VideoTile.prototype.handleImageLoad_ = function() {
 	this.image_.width = this.image_.videoWidth;
 	this.image_.height = this.image_.videoHeight;
     this.state = ol.TileState.LOADED;
-	  this.image_.play();
+	  //console.log('LOADED')
+	  //this.image_.play();
 	//ol.events.listen(this.image_, 'timeupdate', this.timeUpdated, this);
-	  //reset();
+	  reset();
   } else {
     this.state = ol.TileState.EMPTY;
   }
@@ -128,6 +129,7 @@ ol.VideoTile.prototype.someLoaded = function(event) {
 	}
 	for (var i = 0; i < len; ++i) {
 		if (seekable.start(i) <= time && time <= seekable.end(i)) {
+			console.log('changing currentTime')
 			this.image_.currentTime = time;
 			//console.log('synced', this.image_.currentTime);
 			return;
@@ -148,6 +150,7 @@ ol.VideoTile.prototype.timeUpdated = function(event) {
 		} else if (latestTime === 0 && duration > 0) {
 			video.currentTime = 0; // need to reset
 		}
+			console.log('changing currentTime')
 	}
 };
 ol.VideoTile.prototype.progress = function(event) {
@@ -198,8 +201,8 @@ ol.source.VideoXYZ.prototype.tileLoadFunction = function(tile, url) {
 }
 */
 ol.source.VideoXYZ.prototype.tileUrlFunction = function(coord) {
-	//var url = 'https://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
-	var url = 'http://172.20.89.233/{z}/000/000/{x}/000/000/{y}.webm';
+	var url = 'https://npm.landcareresearch.co.nz/videos/{z}/000/000/{x}/000/000/{y}.mp4';
+	//var url = 'http://172.20.89.233/{z}/000/000/{x}/000/000/{y}.webm';
 	var y = coord[2];
 	var x = coord[1];
 	var z = coord[0];
@@ -237,6 +240,7 @@ ol.layer.VideoTile = function(opt_options) {
 	this.timePerFrame = 1/60;
 	var source = this.getSource();
 	var tileGrid = source.getTileGrid();
+	//var previousFrames = [];
 	let postCompose = function(event) {
 		var frameState = event.frameState;
 		var extent = frameState.extent;
@@ -293,6 +297,7 @@ ol.layer.VideoTile.prototype.sync = function() {
 		.reduce((a, t) => Math.max(a, t > 0 ? t % 29 : 0));
 	if (maxTime < delta || maxTime > duration - delta) return;
 	videos.map((v) => v.currentTime = maxTime);
+			console.log('changing currentTime')
 };
 
 
@@ -441,13 +446,62 @@ let g = function() {
 setInterval(f, 1000/30);
 */
 f();
-map.on('moveend', function() {
-	//videos.map((v) => v.currentTime = videos[videos.length - 1].currentTime);
-	if (window.videos) window.videos.map((v) => v.currentTime = 0);
-});
+//map.on('moveend', reset);
 /*
 */
-//document.getElementById('reset').addEventListener('click', reset);
-//document.getElementById('pause').addEventListener('click', () => videos.map((v) => v.pause()));
-//document.getElementById('start').addEventListener('click', () => videos.map((v) => v.play()));
+let slider = document.getElementById('time');
+let paused = false;
+let currentTime = 0;
+let reset = () => {
+	let time = 0;
+	if (window.videos && videos.length)
+		window.videos.map((v) => v.currentTime = time);
+			console.log('changing currentTime')
+	slider.value = time;
+}
+document.getElementById('pause').addEventListener('click', () => {
+	if (!paused && window.videos && videos.length) {
+		paused = true;
+		videos.map((v) => v.pause());
+	}
+});
+document.getElementById('reset').addEventListener('click', reset);
+document.getElementById('start').addEventListener('click', () => {
+	if (paused && window.videos && videos.length) {
+		paused = false;
+		videos.map((v) => v.play())
+	}
+});
+setInterval(() => {
+	if (!paused && window.videos && videos.length)
+		slider.value = videos[0].currentTime;
+}, 300);
 
+/*
+slider.addEventListener('mousedown', () => {
+	if (window.videos && videos.length) {
+		//currentTime = slider.value;
+		videos.map((v) => {
+			paused = true;
+			//v.currentTime = slider.value;
+			v.pause();
+		});
+	}
+});
+slider.addEventListener('mouseup', () => {
+	if (window.videos && videos.length) {
+		videos.map((v) => {
+			paused = false;
+			//v.currentTime = currentTime;
+			v.play();
+		});
+	}
+});
+*/
+slider.addEventListener('input', () => {
+	paused = true;
+	if (window.videos && videos.length) {
+		videos.map((v) => v.currentTime = slider.value);
+	}
+	paused = false;
+});
